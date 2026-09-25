@@ -10,33 +10,73 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BovedaRouteImport } from './routes/boveda'
+import { Route as CineRouteImport } from './routes/cine'
+import { Route as ConexionRouteImport } from './routes/conexion'
+import { Route as FeedRouteImport } from './routes/feed'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BovedaRoute = BovedaRouteImport.update({
+  id: '/boveda',
+  path: '/boveda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CineRoute = CineRouteImport.update({
+  id: '/cine',
+  path: '/cine',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConexionRoute = ConexionRouteImport.update({
+  id: '/conexion',
+  path: '/conexion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedRoute = FeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/boveda': typeof BovedaRoute
+  '/cine': typeof CineRoute
+  '/conexion': typeof ConexionRoute
+  '/feed': typeof FeedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/boveda': typeof BovedaRoute
+  '/cine': typeof CineRoute
+  '/conexion': typeof ConexionRoute
+  '/feed': typeof FeedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/boveda': typeof BovedaRoute
+  '/cine': typeof CineRoute
+  '/conexion': typeof ConexionRoute
+  '/feed': typeof FeedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/boveda' | '/cine' | '/conexion' | '/feed'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/boveda' | '/cine' | '/conexion' | '/feed'
+  id: '__root__' | '/' | '/boveda' | '/cine' | '/conexion' | '/feed'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BovedaRoute: typeof BovedaRoute
+  CineRoute: typeof CineRoute
+  ConexionRoute: typeof ConexionRoute
+  FeedRoute: typeof FeedRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +88,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/boveda': {
+      id: '/boveda'
+      path: '/boveda'
+      fullPath: '/boveda'
+      preLoaderRoute: typeof BovedaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cine': {
+      id: '/cine'
+      path: '/cine'
+      fullPath: '/cine'
+      preLoaderRoute: typeof CineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conexion': {
+      id: '/conexion'
+      path: '/conexion'
+      fullPath: '/conexion'
+      preLoaderRoute: typeof ConexionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feed': {
+      id: '/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof FeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BovedaRoute: BovedaRoute,
+  CineRoute: CineRoute,
+  ConexionRoute: ConexionRoute,
+  FeedRoute: FeedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
