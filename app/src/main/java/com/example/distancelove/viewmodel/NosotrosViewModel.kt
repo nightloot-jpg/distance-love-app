@@ -98,11 +98,12 @@ class NosotrosViewModel(application: Application) : AndroidViewModel(application
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, listOf(StoryItem("Tú", "feed3")))
 
-    // --- Cinema state ---
+    // --- Cinema state & Room Leader Sync ---
     val defaultVideos = listOf(
-        CinemaVideo("Big Buck Bunny", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"),
-        CinemaVideo("Sintel", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"),
-        CinemaVideo("Tears of Steel", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4")
+        CinemaVideo("Big Buck Bunny", "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"),
+        CinemaVideo("Video Demo", "https://storage.googleapis.com/exoplayer-test-media-1/mp4/dizzy-short.mp4"),
+        CinemaVideo("Sintel", "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"),
+        CinemaVideo("Tears of Steel", "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4")
     )
 
     private val _currentVideo = MutableStateFlow(defaultVideos[0])
@@ -117,13 +118,31 @@ class NosotrosViewModel(application: Application) : AndroidViewModel(application
     private val _videoDurationMs = MutableStateFlow(0L)
     val videoDurationMs: StateFlow<Long> = _videoDurationMs.asStateFlow()
 
+    // Room Leader State (Host who controls playback)
+    private val _cinemaLeaderName = MutableStateFlow<String>("Tú")
+    val cinemaLeaderName: StateFlow<String> = _cinemaLeaderName.asStateFlow()
+
+    val isCurrentLeader: StateFlow<Boolean> = combine(currentUserProfile, _cinemaLeaderName) { me, leaderName ->
+        leaderName == "Tú" || leaderName == me?.fullName || leaderName.isBlank()
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    private val _cinemaSyncToast = MutableStateFlow<String?>(null)
+    val cinemaSyncToast: StateFlow<String?> = _cinemaSyncToast.asStateFlow()
+
     private val _cinemaFloaters = MutableStateFlow<List<CinemaFloater>>(emptyList())
     val cinemaFloaters: StateFlow<List<CinemaFloater>> = _cinemaFloaters.asStateFlow()
 
     private val _isMicActive = MutableStateFlow(false)
     val isMicActive: StateFlow<Boolean> = _isMicActive.asStateFlow()
 
-    private val _cinemaChat = MutableStateFlow<List<ChatMessage>>(emptyList())
+    private val _cinemaChat = MutableStateFlow<List<ChatMessage>>(listOf(
+        ChatMessage(
+            id = System.currentTimeMillis() - 10000,
+            by = "Sistema",
+            text = "🎬 Sala de Cine sincronizada iniciada. El líder de la sala controla la reproducción para ambos.",
+            isSystem = true
+        )
+    ))
     val cinemaChat: StateFlow<List<ChatMessage>> = _cinemaChat.asStateFlow()
 
     // --- Persistent Desire Match & Vault ---
@@ -376,7 +395,73 @@ class NosotrosViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    // --- Cinema Actions ---
+    // --- Cinema Actions & Synchronized Leader Role ---
+
+    fun setCinemaLeader(name: String) {
+        _cinemaLeaderName.value = name
+        val msg = ChatMessage(
+            id = System.currentTimeMillis(),
+            by = "Sistema",
+            text = "👑 $name ahora es el líder de la sala y tiene el control de reproducción.",
+            isSystem = true
+        )
+        _cinemaChat.update { it + msg }
+        _cinemaSyncToast.value = "👑 $name es ahora el Líder de la Sala"
+    }
+
+    fun toggleCinemaLeader() {
+        val me = currentUserProfile.value?.fullName ?: "Tú"
+        val partnerName = partnerProfile.value?.fullName ?: "Andrés"
+        val newLeader = if (_cinemaLeaderName.value == me || _cinemaLeaderName.value == "Tú") partnerName else me
+        setCinemaLeader(newLeader)
+    }
+
+    fun leaderSetPlaying(playing: Boolean) {
+        val leader = _cinemaLeaderName.value
+        val me = currentUserProfile.value?.fullName ?: "Tú"
+        _isVideoPlaying.value = playing
+        
+        val actionText = if (playing) "reanudó" else "pausó"
+        val broadcastMsg = if (isCurrentLeader.value) {
+            "👑 $me (Líder) $actionText la reproducción para ambos."
+        } else {
+            "👑 $leader (Líder) $actionText la reproducción."
+        }
+
+        _cinemaSyncToast.value = "🎬 Reproducción ${if (playing) "reanudada" else "pausada"} por $leader"
+
+        val chatMsg = ChatMessage(
+            id = System.currentTimeMillis(),
+            by = "Sistema",
+            text = broadcastMsg,
+            isSystem = true
+        )
+        _cinemaChat.update { it + chatMsg }
+
+        viewModelScope.launch {
+            delay(2800)
+            if (_cinemaSyncToast.value?.contains(actionText) == true) {
+                _cinemaSyncToast.value = null
+            }
+        }
+    }
+
+    fun requestPauseToLeader() {
+        val me = currentUserProfile.value?.fullName ?: "Tú"
+        val leader = _cinemaLeaderName.value
+        val chatMsg = ChatMessage(
+            id = System.currentTimeMillis(),
+            by = me,
+            text = "🙋 Por favor pausa un momento, necesito un break.",
+            isSystem = false
+        )
+        _cinemaChat.update { it + chatMsg }
+        _cinemaSyncToast.value = "💬 Solicitaste pausa a $leader"
+        viewModelScope.launch {
+            delay(2500)
+            _cinemaSyncToast.value = null
+        }
+    }
 
     fun selectVideo(video: CinemaVideo) {
         _currentVideo.value = video
@@ -385,7 +470,7 @@ class NosotrosViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun setVideoPlaying(playing: Boolean) {
-        _isVideoPlaying.value = playing
+        leaderSetPlaying(playing)
     }
 
     fun updateVideoProgress(positionMs: Long, durationMs: Long) {
@@ -410,11 +495,25 @@ class NosotrosViewModel(application: Application) : AndroidViewModel(application
         _isMicActive.update { !it }
     }
 
-    fun sendCinemaMessage(text: String) {
-        if (text.isBlank()) return
+    fun sendCinemaMessage(text: String, gifUrl: String? = null, imageUri: String? = null) {
+        if (text.isBlank() && gifUrl == null && imageUri == null) return
         val user = currentUserProfile.value
-        val msg = ChatMessage(System.currentTimeMillis(), user?.fullName ?: "Tú", text.trim())
+        val msg = ChatMessage(
+            id = System.currentTimeMillis(),
+            by = user?.fullName ?: "Tú",
+            text = text.trim(),
+            gifUrl = gifUrl,
+            imageBitmapUri = imageUri
+        )
         _cinemaChat.update { it + msg }
+    }
+
+    fun sendCinemaGif(gifUrl: String, caption: String = "") {
+        sendCinemaMessage(text = caption, gifUrl = gifUrl)
+    }
+
+    fun sendCinemaPhotoMoment(imageUri: String, caption: String = "📸 Foto del momento") {
+        sendCinemaMessage(text = caption, imageUri = imageUri)
     }
 
     // --- Desire Match Actions ---

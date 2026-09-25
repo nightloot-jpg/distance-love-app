@@ -46,7 +46,10 @@ data class CountdownTime(
 data class ChatMessage(
     val id: Long = System.currentTimeMillis(),
     val by: String,
-    val text: String
+    val text: String,
+    val isSystem: Boolean = false,
+    val gifUrl: String? = null,
+    val imageBitmapUri: String? = null
 )
 
 data class CinemaVideo(
