@@ -1,0 +1,6 @@
+{
+  "name": "Nosotros — Amor a distancia",
+  "description": "Un espacio íntimo y conectado para parejas en relaciones a distancia con feed de momentos, sincronización de cine, pulsos en vivo y bóveda de recuerdos.",
+  "permissions": [],
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

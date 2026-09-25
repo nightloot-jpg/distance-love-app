@@ -30,11 +30,21 @@ export function BottomNav() {
   );
 }
 
-export function Page({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+export function Page({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
   return (
     <main className="mx-auto min-h-screen max-w-md px-4 pb-28 pt-6">
       <header className="mb-5">
-        {subtitle && <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">{subtitle}</p>}
+        {subtitle && (
+          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">{subtitle}</p>
+        )}
         <h1 className="text-4xl font-semibold text-rose">{title}</h1>
       </header>
       {children}

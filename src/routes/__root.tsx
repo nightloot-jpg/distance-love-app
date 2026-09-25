@@ -19,7 +19,10 @@ function NotFoundComponent() {
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-rose">404</h1>
         <p className="mt-2 text-sm text-muted-foreground">Esta página no existe.</p>
-        <Link to="/" className="mt-6 inline-flex rounded-full bg-rose px-5 py-2 text-sm font-semibold text-primary-foreground">
+        <Link
+          to="/"
+          className="mt-6 inline-flex rounded-full bg-rose px-5 py-2 text-sm font-semibold text-primary-foreground"
+        >
           Volver al hogar
         </Link>
       </div>
@@ -38,7 +41,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
       <div className="max-w-md text-center">
         <h1 className="text-2xl font-semibold">Algo salió mal</h1>
         <button
-          onClick={() => { router.invalidate(); reset(); }}
+          onClick={() => {
+            router.invalidate();
+            reset();
+          }}
           className="mt-6 rounded-full bg-rose px-5 py-2 text-sm font-semibold text-primary-foreground"
         >
           Reintentar

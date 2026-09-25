@@ -61,14 +61,18 @@
   --shadow-glow: 0 0 40px -6px oklch(0.75 0.12 30 / 55%);
 }
 
-@utility bg-rose { background-image: var(--gradient-rose); }
+@utility bg-rose {
+  background-image: var(--gradient-rose);
+}
 @utility text-rose {
   background-image: var(--gradient-rose);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
-@utility shadow-glow { box-shadow: var(--shadow-glow); }
+@utility shadow-glow {
+  box-shadow: var(--shadow-glow);
+}
 @utility glass {
   background: color-mix(in oklab, var(--card) 70%, transparent);
   backdrop-filter: blur(16px);
@@ -76,25 +80,55 @@
 }
 
 @keyframes ripple {
-  from { transform: scale(1); opacity: 0.7; }
-  to { transform: scale(3.2); opacity: 0; }
+  from {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(3.2);
+    opacity: 0;
+  }
 }
 @keyframes floatUp {
-  0% { transform: translateY(0) scale(0.6); opacity: 0; }
-  15% { opacity: 1; transform: translateY(-20px) scale(1.1); }
-  100% { transform: translateY(-260px) scale(1); opacity: 0; }
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1.1);
+  }
+  100% {
+    transform: translateY(-260px) scale(1);
+    opacity: 0;
+  }
 }
 @keyframes beat {
-  0%, 100% { transform: scale(1); }
-  30% { transform: scale(1.12); }
-  60% { transform: scale(0.97); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.12);
+  }
+  60% {
+    transform: scale(0.97);
+  }
 }
-@utility animate-ripple { animation: ripple 1.6s ease-out forwards; }
-@utility animate-float-up { animation: floatUp 2.4s ease-out forwards; }
-@utility animate-beat { animation: beat 0.9s ease-in-out infinite; }
+@utility animate-ripple {
+  animation: ripple 1.6s ease-out forwards;
+}
+@utility animate-float-up {
+  animation: floatUp 2.4s ease-out forwards;
+}
+@utility animate-beat {
+  animation: beat 0.9s ease-in-out infinite;
+}
 
 @layer base {
-  * { border-color: var(--color-border); }
+  * {
+    border-color: var(--color-border);
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -102,5 +136,9 @@
     background-image: radial-gradient(ellipse at top, oklch(0.24 0.04 30 / 60%), transparent 60%);
     background-attachment: fixed;
   }
-  h1, h2, h3 { font-family: var(--font-display); }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+  }
 }
