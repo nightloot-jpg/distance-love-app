@@ -1,61 +1,42 @@
-# Kindred Space
+# Nosotros — Amor a distancia (Android)
 
-Crear una aplicación web para parejas a distancia con diseño moderno, elegante y acogedor (modo oscuro con acentos cálidos y oro rosa), adaptada a móvil (PWA/responsive), que incluya las 5 pantallas principales:
+Aplicación nativa de Android desarrollada en **Kotlin** y **Jetpack Compose** para parejas en relaciones a distancia. Diseñada con una estética oscura íntima con acentos en oro rosa, tipografía editorial y componentes interactivos en tiempo real.
 
-1. Espacio Compartido (Home / Hub):
+## Características Principales
 
-- Cabecera con los dos perfiles emparejados, sus horas locales (ej. Madrid y Tokio), clima actual, nivel de batería y estado ("En el trabajo", "Durmiendo", "Libre").
-- Contador regresivo hacia el próximo reencuentro ("X días para volver a vernos").
-- Botón interactivo central de toque háptico / latido en directo que emite ondas luminosas al mantener pulsado.
-- Pizarrón de notas rápidas compartidas y recordatorios.
+1. **Hogar (Espacio Compartido)**:
+   - Tarjetas de estado con zonas horarias en vivo (Madrid y Tokio), clima, nivel de batería y disponibilidad.
+   - Contador regresivo hacia el próximo reencuentro (*18 oct*).
+   - Botón interactivo central con vibración háptica, animaciones de ondas luminosas y latido en directo.
+   - Pizarrón de notas rápidas compartidas con marcado de tareas, autor y eliminación.
 
-2. Conexión (Preguntas Diarias & Retos):
+2. **Conexión (Preguntas & Retos)**:
+   - **Pregunta diaria en doble ciega**: la respuesta de la pareja se mantiene borrosa hasta que tú respondes; al revelarse, se habilita el hilo de conversación.
+   - **Retos cooperativos**: seguimiento bilateral de actividades conjuntas a distancia (cocinar la misma receta, fotografía espontánea, playlist cruzada, etc.).
+   - **Preguntas secretas**: formulario para crear preguntas privadas y tarjetas de estado.
 
-- Sistema de preguntas diarias con mecánica de "doble ciega": la respuesta de la pareja permanece borrosa/bloqueada con un candado hasta que el usuario envía su propia respuesta. Al revelarse ambas, se activa un micro-chat para comentarlas.
-- Pestaña de Retos cooperativos para hacer a distancia (ej. cocinar lo mismo, foto espontánea).
-- Sección de preguntas secretas personalizadas.
+3. **Sala de Cine (Watch Together)**:
+   - Reproductor de vídeo sincronizado con Media3 ExoPlayer.
+   - Lluvia de reacciones emoji flotantes animadas en pantalla (❤️, 🍿, 😂, 😭, 😍, 🔥).
+   - Control de canal de voz.
+   - Selector de biblioteca de vídeos (.mp4) y campo para enlaces personalizados.
+   - Chat de sala en directo con respuestas simuladas de pareja.
 
-3. Sala de Cine (Watch Together estilo Rave):
+4. **Nuestro Feed (Recuerdos para Dos)**:
+   - Bandeja superior de historias efímeras con visor modal animado a pantalla completa y barra de progreso.
+   - Feed privado con soporte de fotos, doble toque para dar me gusta (*1/1 ❤️*), notas de voz con visor de onda de audio interactivo y cajón de comentarios.
+   - Conmutador entre vista Feed vertical y Cuadrícula (Grid 3x3).
 
-- Reproductor de vídeo con sincronización de reproducción (Play/Pausa y barra de tiempo).
-- Selector de vídeos (YouTube o enlaces).
-- Barra de reacciones con emojis animados flotantes sobre el vídeo (corazones, palomitas).
-- Chat de sala en directo y control de voz simulado.
+5. **Bóveda Íntima (Espacio Protegido)**:
+   - Pantalla de desbloqueo con teclado de PIN de 4 dígitos (demo: `1402`) y lector de huella dactilar biométrico.
+   - **Desire Match**: cartas de deseos deslizables (*swipe left/right* o botones Sí/No) en doble ciega; genera efecto visual de *¡Es un match!* cuando coinciden y los guarda en el historial.
+   - **Recuerdos de Voz**: audios cifrados y cuadrícula de recuerdos privados.
 
-4. Nuestro Feed (Instagram Privado para Dos):
+## Arquitectura y Tecnologías
 
-- Barra superior de historias efímeras (historias de 24h de ambos con anillo brillante).
-- Feed cronológico de publicaciones compartidas con fotos, textos, etiquetas de ubicación y reproductor de notas de voz adjuntas.
-- Botón de me gusta (contador "1/1 ❤️") y comentarios exclusivos.
-- Selector de vista entre Feed vertical y Cuadrícula (Grid 3x3) de recuerdos.
-
-5. Bóveda Íntima (Espacio Privado):
-
-- Pantalla de desbloqueo con PIN de seguridad de 4 dígitos o biometría simulada.
-- Dinámica "Desire Match": cartas de deseos y fantasías deslizables en doble ciega (solo se revela una carta si ambos han marcado que sí).
-- Bóveda de notas de voz encriptadas y recuerdos íntimos protegidos.
-
-Navegación inferior limpia con 5 iconos intuitivos para alternar entre todas las secciones de forma fluida.
-
-This project was built with [Lovable](https://lovable.dev).
-
-**Live app**: https://distance-love-app.lovable.app
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/56cff314-edc5-4ca2-8732-02e7f3ace2f2).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
+- **Lenguaje**: Kotlin 2.0+
+- **UI**: Jetpack Compose con Material 3 y Material You theming
+- **Arquitectura**: MVVM con StateFlow y Kotlin Coroutines
+- **Reproducción Multimedia**: AndroidX Media3 ExoPlayer
+- **Imágenes**: Coil Compose y drawables vectoriales adaptativos
+- **Build System**: Gradle Kotlin DSL con Version Catalog (`libs.versions.toml`)
