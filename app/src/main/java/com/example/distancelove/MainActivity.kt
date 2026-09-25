@@ -77,9 +77,11 @@ class MainActivity : ComponentActivity() {
                         }
 
                         Scaffold(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .imePadding(),
                             containerColor = DarkBackground,
-                            contentWindowInsets = WindowInsets.statusBars,
+                            contentWindowInsets = WindowInsets.safeDrawing,
                             bottomBar = {
                                 BottomNavBar(
                                     currentDestination = currentDestination,

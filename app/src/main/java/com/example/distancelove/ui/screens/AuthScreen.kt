@@ -60,6 +60,8 @@ fun AuthScreen(
         modifier = modifier
             .fillMaxSize()
             .background(DarkBackground)
+            .statusBarsPadding()
+            .imePadding()
             .padding(horizontal = 24.dp, vertical = 20.dp),
         contentAlignment = Alignment.Center
     ) {
