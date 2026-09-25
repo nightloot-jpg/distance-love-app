@@ -52,7 +52,7 @@ function Feed() {
       {view === "grid" ? (
         <div className="grid grid-cols-3 gap-1 overflow-hidden rounded-2xl">
           {Array.from({ length: 9 }).map((_, i) => {
-            const p = posts[i % posts.length];
+            const p = posts[i % posts.length]!;
             return <img key={i} src={p.img} alt="" className="aspect-square w-full object-cover" style={{ filter: `hue-rotate(${i * 8}deg)` }} />;
           })}
         </div>
@@ -62,7 +62,7 @@ function Feed() {
         </div>
       )}
 
-      {story !== null && <StoryViewer s={stories[story]} onClose={() => setStory(null)} />}
+      {story !== null && <StoryViewer s={stories[story]!} onClose={() => setStory(null)} />}
     </Page>
   );
 }

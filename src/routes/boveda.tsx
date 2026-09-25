@@ -93,6 +93,7 @@ function DesireMatch() {
 
   const decide = (yes: boolean) => {
     const c = cards[i];
+    if (!c) return;
     if (yes && c.partner) { setMatches((m) => [...m, c.t]); setFlash(c.t); setTimeout(() => setFlash(null), 1600); }
     setI(i + 1);
     setDrag(0);

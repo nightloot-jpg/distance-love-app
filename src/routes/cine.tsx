@@ -29,7 +29,7 @@ function ytId(url: string) {
 const t = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
 function Cine() {
-  const [src, setSrc] = useState(library[0].url);
+  const [src, setSrc] = useState(library[0]!.url);
   const [link, setLink] = useState("");
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
