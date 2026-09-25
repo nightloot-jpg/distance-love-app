@@ -14,6 +14,10 @@ import android.widget.FrameLayout
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,10 +36,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -61,13 +65,17 @@ enum class StreamingPlatform(
     val initialUrl: String,
     val iconEmoji: String,
     val tagColor: Color,
-    val isNativePlayer: Boolean
+    val isNativePlayer: Boolean,
+    val subtitle: String
 ) {
-    VIDEOS_DIRECTOS("Videos / Enlaces", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", "🍿", RosePrimary, true),
-    YOUTUBE("YouTube", "https://m.youtube.com", "🔴", Color(0xFFFF0000), false),
-    NETFLIX("Netflix", "https://www.netflix.com", "🎬", Color(0xFFE50914), false),
-    PRIME_VIDEO("Prime Video", "https://www.primevideo.com", "📦", Color(0xFF00A8E1), false),
-    DISNEY_PLUS("Disney+", "https://www.disneyplus.com", "✨", Color(0xFF113CCF), false)
+    VIDEOS_DIRECTOS("Videos / Enlaces", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", "🍿", RosePrimary, true, "Reproductor sincronizado"),
+    NETFLIX("Netflix", "https://www.netflix.com", "🎬", Color(0xFFE50914), false, "Películas y series"),
+    PRIME_VIDEO("Prime Video", "https://www.primevideo.com", "📦", Color(0xFF00A8E1), false, "Amazon Prime Video"),
+    DISNEY_PLUS("Disney+", "https://www.disneyplus.com", "✨", Color(0xFF113CCF), false, "Disney, Marvel, Pixar"),
+    YOUTUBE("YouTube", "https://m.youtube.com", "🔴", Color(0xFFFF0000), false, "Videos y directos"),
+    MAX("Max / HBO", "https://www.max.com", "📺", Color(0xFF002BE7), false, "HBO, Warner Bros"),
+    TWITCH("Twitch", "https://m.twitch.tv", "🟣", Color(0xFF9146FF), false, "Streams en vivo"),
+    CRUNCHYROLL("Crunchyroll", "https://www.crunchyroll.com", "🍙", Color(0xFFFF6400), false, "Anime y series")
 }
 
 @OptIn(UnstableApi::class)
@@ -89,11 +97,19 @@ fun CineScreen(
     val couple by viewModel.coupleInfo.collectAsState()
 
     var selectedPlatform by remember { mutableStateOf(StreamingPlatform.VIDEOS_DIRECTOS) }
+    var isPlatformMenuExpanded by remember { mutableStateOf(false) }
     var currentWebUrl by remember { mutableStateOf(selectedPlatform.initialUrl) }
     var customUrlInput by remember { mutableStateOf("") }
     var chatInput by remember { mutableStateOf("") }
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
     var showSyncFlash by remember { mutableStateOf(false) }
+    var isWebLoading by remember { mutableStateOf(false) }
+
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (isPlatformMenuExpanded) 180f else 0f,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "chevronRotation"
+    )
 
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
@@ -168,7 +184,8 @@ fun CineScreen(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
                         Box(
                             modifier = Modifier
@@ -180,7 +197,8 @@ fun CineScreen(
                             text = if (partner != null) "Sincronizado con ${partner?.fullName}" else "Sala lista para invitar pareja",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary
+                            color = TextPrimary,
+                            maxLines = 1
                         )
                     }
 
@@ -221,52 +239,327 @@ fun CineScreen(
             }
         }
 
-        // Platform Hub (Netflix, Prime, Disney+, YouTube, Direct)
+        // Collapsible & Expandable Platform Dropdown Menu
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "PLATAFORMAS DISPONIBLES",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextMuted,
-                    letterSpacing = 1.5.sp
-                )
-
-                Row(
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("streaming_platform_dropdown_card"),
+                shape = RoundedCornerShape(20.dp),
+                borderColor = if (isPlatformMenuExpanded) RosePrimary.copy(alpha = 0.6f) else DarkCardBorder
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    StreamingPlatform.entries.forEach { platform ->
-                        val isSelected = selectedPlatform == platform
-                        GlassCard(
-                            modifier = Modifier
-                                .clickable {
-                                    selectedPlatform = platform
-                                    currentWebUrl = platform.initialUrl
-                                    if (platform.isNativePlayer) {
-                                        viewModel.setVideoPlaying(false)
+                    // Dropdown Header / Trigger Button
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable { isPlatformMenuExpanded = !isPlatformMenuExpanded }
+                            .padding(vertical = 4.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(selectedPlatform.tagColor.copy(alpha = 0.2f))
+                                    .border(1.dp, selectedPlatform.tagColor.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(text = selectedPlatform.iconEmoji, fontSize = 20.sp)
+                            }
+
+                            Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = selectedPlatform.title,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimary
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(50))
+                                            .background(selectedPlatform.tagColor.copy(alpha = 0.2f))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "Activo",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontSize = 9.sp,
+                                            color = selectedPlatform.tagColor,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
                                 }
-                                .testTag("platform_${platform.name.lowercase()}"),
-                            shape = RoundedCornerShape(18.dp),
-                            backgroundColor = if (isSelected) platform.tagColor.copy(alpha = 0.25f) else DarkSurfaceElevated,
-                            borderColor = if (isSelected) platform.tagColor else DarkCardBorder
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(text = platform.iconEmoji, fontSize = 16.sp)
                                 Text(
-                                    text = platform.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = if (isSelected) TextPrimary else TextMuted,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    fontSize = 13.sp
+                                    text = if (isPlatformMenuExpanded) "Toca para ocultar plataformas" else "Toca para cambiar (Netflix, Prime, Disney+...)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextMuted,
+                                    fontSize = 11.sp
                                 )
                             }
+                        }
+
+                        // Animated Chevron Indicator
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(DarkSurfaceElevated)
+                                .border(1.dp, DarkCardBorder, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.KeyboardArrowDown,
+                                contentDescription = if (isPlatformMenuExpanded) "Contraer menú" else "Desplegar menú",
+                                tint = RosePrimary,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .rotate(chevronRotation)
+                            )
+                        }
+                    }
+
+                    // Collapsible Content
+                    AnimatedVisibility(
+                        visible = isPlatformMenuExpanded,
+                        enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
+                        exit = shrinkVertically(animationSpec = tween(250)) + fadeOut(animationSpec = tween(200))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            HorizontalDivider(
+                                modifier = Modifier.fillMaxWidth(),
+                                thickness = 1.dp,
+                                color = DarkCardBorder.copy(alpha = 0.5f)
+                            )
+
+                            Text(
+                                text = "SELECCIONA PLATAFORMA PARA VER JUNTOS",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextMuted,
+                                letterSpacing = 1.2.sp,
+                                fontSize = 10.sp,
+                                modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                            )
+
+                            // Grid of platform options
+                            val rows = StreamingPlatform.entries.chunked(2)
+                            rows.forEach { rowItems ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    rowItems.forEach { platform ->
+                                        val isSelected = selectedPlatform == platform
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(14.dp))
+                                                .background(
+                                                    if (isSelected) platform.tagColor.copy(alpha = 0.22f)
+                                                    else DarkSurfaceElevated
+                                                )
+                                                .border(
+                                                    width = if (isSelected) 1.5.dp else 1.dp,
+                                                    color = if (isSelected) platform.tagColor else DarkCardBorder,
+                                                    shape = RoundedCornerShape(14.dp)
+                                                )
+                                                .clickable {
+                                                    selectedPlatform = platform
+                                                    currentWebUrl = platform.initialUrl
+                                                    if (platform.isNativePlayer) {
+                                                        viewModel.setVideoPlaying(false)
+                                                    }
+                                                    isPlatformMenuExpanded = false // Collapse after selection for convenience
+                                                }
+                                                .padding(horizontal = 10.dp, vertical = 10.dp)
+                                                .testTag("platform_${platform.name.lowercase()}"),
+                                            contentAlignment = Alignment.CenterStart
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Text(text = platform.iconEmoji, fontSize = 20.sp)
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = platform.title,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                                        color = if (isSelected) TextPrimary else TextPrimary.copy(alpha = 0.85f),
+                                                        fontSize = 12.sp,
+                                                        maxLines = 1
+                                                    )
+                                                    Text(
+                                                        text = platform.subtitle,
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = TextMuted,
+                                                        fontSize = 9.sp,
+                                                        maxLines = 1
+                                                    )
+                                                }
+                                                if (isSelected) {
+                                                    Icon(
+                                                        imageVector = Icons.Filled.Check,
+                                                        contentDescription = "Seleccionado",
+                                                        tint = platform.tagColor,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (rowItems.size == 1) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+
+                            // Quick button to collapse menu manually
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(DarkSurfaceElevated.copy(alpha = 0.6f))
+                                    .clickable { isPlatformMenuExpanded = false }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.KeyboardArrowUp,
+                                        contentDescription = "Ocultar",
+                                        tint = TextMuted,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = "Ocultar menú de plataformas",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = TextMuted,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Web Navigation Bar (If a web streaming service is active)
+        if (!selectedPlatform.isNativePlayer) {
+            item {
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            IconButton(
+                                onClick = { webViewRef?.goBack() },
+                                enabled = webViewRef?.canGoBack() == true,
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.ArrowBack,
+                                    contentDescription = "Atrás",
+                                    tint = if (webViewRef?.canGoBack() == true) TextPrimary else TextMuted.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            IconButton(
+                                onClick = { webViewRef?.goForward() },
+                                enabled = webViewRef?.canGoForward() == true,
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.ArrowForward,
+                                    contentDescription = "Adelante",
+                                    tint = if (webViewRef?.canGoForward() == true) TextPrimary else TextMuted.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            IconButton(
+                                onClick = { webViewRef?.reload() },
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Refresh,
+                                    contentDescription = "Recargar",
+                                    tint = TextPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            if (isWebLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(14.dp),
+                                    color = RosePrimary,
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                            Text(
+                                text = selectedPlatform.title,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = selectedPlatform.tagColor,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        }
+
+                        // Quick Button to open/close menu
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(DarkSurfaceElevated)
+                                .clickable { isPlatformMenuExpanded = !isPlatformMenuExpanded }
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Cambiar ▾",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextMuted,
+                                fontSize = 10.sp
+                            )
                         }
                     }
                 }
@@ -302,7 +595,8 @@ fun CineScreen(
                         // In-App Web View for Netflix, Disney+, Prime Video, YouTube Web
                         RaveWebPlayer(
                             url = currentWebUrl,
-                            onWebViewCreated = { webViewRef = it }
+                            onWebViewCreated = { webViewRef = it },
+                            onLoadingChange = { isWebLoading = it }
                         )
                     }
 
@@ -620,7 +914,8 @@ fun CineScreen(
 @Composable
 private fun RaveWebPlayer(
     url: String,
-    onWebViewCreated: (WebView) -> Unit
+    onWebViewCreated: (WebView) -> Unit,
+    onLoadingChange: (Boolean) -> Unit = {}
 ) {
     AndroidView(
         factory = { ctx ->
@@ -649,6 +944,12 @@ private fun RaveWebPlayer(
                 webViewClient = object : WebViewClient() {
                     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                         super.onPageStarted(view, url, favicon)
+                        onLoadingChange(true)
+                    }
+
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        super.onPageFinished(view, url)
+                        onLoadingChange(false)
                     }
                 }
 
