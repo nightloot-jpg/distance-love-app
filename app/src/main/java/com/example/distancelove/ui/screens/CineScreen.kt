@@ -165,6 +165,310 @@ enum class CinemaPickerTab(val title: String, val icon: String) {
     GIFS("GIFs", "🎬")
 }
 
+data class CinemaMovieItem(
+    val id: String,
+    val title: String,
+    val platform: StreamingPlatform,
+    val type: String, // "Película" or "Serie"
+    val genre: String,
+    val year: String,
+    val duration: String,
+    val rating: String,
+    val synopsis: String,
+    val posterUrl: String,
+    val videoStreamUrl: String,
+    val aspectRatio: Float = 16f / 9f,
+    val formatName: String = "16:9 HD",
+    val availableAudios: List<String> = listOf("Español Latino (5.1 Dolby)", "Español España (Castellano)", "Inglés [Original] (Dolby Atmos)", "Francés (Estéreo)"),
+    val availableSubtitles: List<String> = listOf("Desactivados", "Español Latino", "Español (CC)", "Inglés [CC]", "Francés"),
+    val availableQualities: List<String> = listOf("4K Ultra HD (2160p HDR)", "1080p Full HD (60 FPS)", "720p HD", "480p SD", "Automática (Dinámica)")
+)
+
+enum class CinemaAspectMode(val label: String, val ratio: Float?, val icon: String) {
+    AUTO("Formato Original", null, "📐"),
+    CINEMA_21_9("21:9 Cinema Scope", 21f / 9f, "🎬"),
+    WIDESCREEN_16_9("16:9 Panorámico", 16f / 9f, "📺"),
+    UNIVISIUM_2_1("2:1 Univisium", 2.0f, "📽️"),
+    CLASSIC_4_3("4:3 Clásico", 4f / 3f, "📼")
+}
+
+val PLATFORM_CATALOG_MOVIES = listOf(
+    // Netflix
+    CinemaMovieItem(
+        id = "nf_1",
+        title = "Heartstopper: París con Amor",
+        platform = StreamingPlatform.NETFLIX,
+        type = "Serie",
+        genre = "Romance / Drama",
+        year = "2024",
+        duration = "3 Temporadas",
+        rating = "99% Match",
+        synopsis = "Nick y Charlie viajan juntos a París mientras descubren nuevos sentimientos y fortalecen su relación en una aventura inolvidable.",
+        posterUrl = "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+        aspectRatio = 2.39f,
+        formatName = "21:9 Cinema Scope"
+    ),
+    CinemaMovieItem(
+        id = "nf_2",
+        title = "A Través de Mi Ventana",
+        platform = StreamingPlatform.NETFLIX,
+        type = "Película",
+        genre = "Romance / Juvenil",
+        year = "2023",
+        duration = "1h 56m",
+        rating = "96% Match",
+        synopsis = "La atracción magnética y secreta entre Raquel y Ares se transforma en una historia apasionada que desafía todas las reglas familiares.",
+        posterUrl = "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+        aspectRatio = 16f / 9f,
+        formatName = "16:9 Panorámico"
+    ),
+    CinemaMovieItem(
+        id = "nf_3",
+        title = "Stranger Things: El Desenlace",
+        platform = StreamingPlatform.NETFLIX,
+        type = "Serie",
+        genre = "Ciencia Ficción / Misterio",
+        year = "2024",
+        duration = "4 Temporadas",
+        rating = "98% Match",
+        synopsis = "El grupo de Hawkins se reúne para librar la batalla definitiva contra las sombras del Upside Down y proteger a sus seres amados.",
+        posterUrl = "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+        aspectRatio = 2.0f,
+        formatName = "2:1 Univisium"
+    ),
+    CinemaMovieItem(
+        id = "nf_4",
+        title = "Noche de Romance en Venecia",
+        platform = StreamingPlatform.NETFLIX,
+        type = "Película",
+        genre = "Comedia Romántica",
+        year = "2024",
+        duration = "1h 48m",
+        rating = "95% Match",
+        synopsis = "Dos almas destinadas a encontrarse cruzan sus caminos entre góndolas, luces mágicas y secretos compartidos bajo la luna veneciana.",
+        posterUrl = "https://images.unsplash.com/photo-1514306191717-452ec28c7814?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+        aspectRatio = 2.35f,
+        formatName = "2.35:1 Anamórfico"
+    ),
+
+    // Prime Video
+    CinemaMovieItem(
+        id = "pv_1",
+        title = "Culpa Mía: Amor a Toda Velocidad",
+        platform = StreamingPlatform.PRIME_VIDEO,
+        type = "Película",
+        genre = "Romance / Acción",
+        year = "2023",
+        duration = "1h 59m",
+        rating = "★ 9.4",
+        synopsis = "Noah y Nick no pueden evitar la pasión desmedida entre carreras clandestinas y un amor que desafía todos los límites.",
+        posterUrl = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+        aspectRatio = 2.39f,
+        formatName = "21:9 Cinema Scope"
+    ),
+    CinemaMovieItem(
+        id = "pv_2",
+        title = "El Verano en que me Enamoré",
+        platform = StreamingPlatform.PRIME_VIDEO,
+        type = "Serie",
+        genre = "Romance / Drama",
+        year = "2024",
+        duration = "2 Temporadas",
+        rating = "★ 9.5",
+        synopsis = "Un verano que lo cambia todo: primeros amores, promesas en la playa de Cousins y decisiones que marcarán sus vidas para siempre.",
+        posterUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+        aspectRatio = 2.0f,
+        formatName = "2:1 Univisium"
+    ),
+    CinemaMovieItem(
+        id = "pv_3",
+        title = "The Boys: Edición Especial",
+        platform = StreamingPlatform.PRIME_VIDEO,
+        type = "Serie",
+        genre = "Acción / Humor Negro",
+        year = "2024",
+        duration = "4 Temporadas",
+        rating = "★ 9.7",
+        synopsis = "La batalla sin reglas entre vigilantes decididos y superhéroes fuera de control llega a su punto más explosivo.",
+        posterUrl = "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4",
+        aspectRatio = 16f / 9f,
+        formatName = "16:9 Panorámico"
+    ),
+
+    // Disney+
+    CinemaMovieItem(
+        id = "dp_1",
+        title = "Encanto: La Magia Juntos",
+        platform = StreamingPlatform.DISNEY_PLUS,
+        type = "Película",
+        genre = "Animación / Musical",
+        year = "2023",
+        duration = "1h 49m",
+        rating = "★ 9.6",
+        synopsis = "La extraordinaria familia Madrigal vive escondida en las montañas de Colombia en una casa mágica llena de música y calidez.",
+        posterUrl = "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+        aspectRatio = 16f / 9f,
+        formatName = "16:9 HD"
+    ),
+    CinemaMovieItem(
+        id = "dp_2",
+        title = "Aladdín: Un Mundo Ideal",
+        platform = StreamingPlatform.DISNEY_PLUS,
+        type = "Película",
+        genre = "Romance / Aventura",
+        year = "2022",
+        duration = "2h 08m",
+        rating = "★ 9.4",
+        synopsis = "Vuela sobre la alfombra mágica a través de las estrellas mientras el amor florece en el reino de Agrabah.",
+        posterUrl = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+        aspectRatio = 2.39f,
+        formatName = "21:9 Cinema Scope"
+    ),
+    CinemaMovieItem(
+        id = "dp_3",
+        title = "The Mandalorian & Grogu",
+        platform = StreamingPlatform.DISNEY_PLUS,
+        type = "Serie",
+        genre = "Ciencia Ficción / Aventura",
+        year = "2024",
+        duration = "3 Temporadas",
+        rating = "★ 9.8",
+        synopsis = "Un viaje épico por los confines de la galaxia protegiendo el lazo más puro de lealtad y cariño.",
+        posterUrl = "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+        aspectRatio = 2.39f,
+        formatName = "21:9 Cinema Scope"
+    ),
+
+    // Max
+    CinemaMovieItem(
+        id = "mx_1",
+        title = "Euphoria: Amor & Sueños",
+        platform = StreamingPlatform.MAX,
+        type = "Serie",
+        genre = "Drama / Romance",
+        year = "2024",
+        duration = "2 Temporadas",
+        rating = "★ 9.5",
+        synopsis = "Un retrato visualmente hipnótico sobre la vulnerabilidad, las conexiones profundas y el anhelo de afecto verdadero.",
+        posterUrl = "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+        aspectRatio = 2.39f,
+        formatName = "21:9 Cinema Scope"
+    ),
+    CinemaMovieItem(
+        id = "mx_2",
+        title = "Dune: Destino de Arrakis",
+        platform = StreamingPlatform.MAX,
+        type = "Película",
+        genre = "Ciencia Ficción / Romance Épico",
+        year = "2024",
+        duration = "2h 46m",
+        rating = "★ 9.9",
+        synopsis = "Paul Atreides y Chani forjan una alianza de honor y pasión en el desierto infinito de Arrakis.",
+        posterUrl = "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+        aspectRatio = 2.39f,
+        formatName = "21:9 Cinema Scope"
+    ),
+
+    // Crunchyroll
+    CinemaMovieItem(
+        id = "cr_1",
+        title = "Your Name (Kimi no Na wa)",
+        platform = StreamingPlatform.CRUNCHYROLL,
+        type = "Película",
+        genre = "Anime / Romance",
+        year = "2023",
+        duration = "1h 52m",
+        rating = "★ 9.9",
+        synopsis = "Mitsuha y Taki intercambian cuerpos y memorias a través del tiempo, unidos por el hilo rojo del destino.",
+        posterUrl = "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+        aspectRatio = 16f / 9f,
+        formatName = "16:9 HD",
+        availableAudios = listOf("Japonés [Original] (Voces Japonesas)", "Español Latino (Doblaje)", "Español España (Castellano)", "Inglés"),
+        availableSubtitles = listOf("Desactivados", "Español Latino", "Español España", "Inglés"),
+        availableQualities = listOf("1080p Full HD (60 FPS)", "720p HD", "480p SD", "Automática")
+    ),
+    CinemaMovieItem(
+        id = "cr_2",
+        title = "Kimetsu no Yaiba: Lazos Eternos",
+        platform = StreamingPlatform.CRUNCHYROLL,
+        type = "Serie",
+        genre = "Anime / Acción",
+        year = "2024",
+        duration = "4 Temporadas",
+        rating = "★ 9.8",
+        synopsis = "Tanjiro y Nezuko luchan juntos sin rendirse jamás para proteger el vínculo indestructible de su familia.",
+        posterUrl = "https://images.unsplash.com/photo-1563089145-599997674d42?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+        aspectRatio = 16f / 9f,
+        formatName = "16:9 HD",
+        availableAudios = listOf("Japonés [Original] (Voces Japonesas)", "Español Latino (Doblaje)", "Español España (Castellano)", "Inglés"),
+        availableSubtitles = listOf("Desactivados", "Español Latino", "Español España", "Inglés"),
+        availableQualities = listOf("1080p Full HD (60 FPS)", "720p HD", "480p SD", "Automática")
+    ),
+
+    // YouTube
+    CinemaMovieItem(
+        id = "yt_1",
+        title = "Noche de Cortos Románticos 4K",
+        platform = StreamingPlatform.YOUTUBE,
+        type = "Película",
+        genre = "Cine Independiente",
+        year = "2024",
+        duration = "48m",
+        rating = "★ 9.7",
+        synopsis = "Una selección premiada de historias de amor y momentos que tocan el corazón con cinematografía en alta definición.",
+        posterUrl = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+        aspectRatio = 2.35f,
+        formatName = "2.35:1 Anamórfico"
+    ),
+    CinemaMovieItem(
+        id = "yt_2",
+        title = "Lo-Fi Romance Beats 24/7",
+        platform = StreamingPlatform.YOUTUBE,
+        type = "Serie",
+        genre = "Música / Chill",
+        year = "2024",
+        duration = "En Vivo",
+        rating = "★ 9.9",
+        synopsis = "Música y animación acogedora para charlar, relajarse y disfrutar de la compañía del otro a la distancia.",
+        posterUrl = "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+        aspectRatio = 16f / 9f,
+        formatName = "16:9 HD"
+    ),
+
+    // Twitch
+    CinemaMovieItem(
+        id = "tw_1",
+        title = "Watch Party Directo en Vivo",
+        platform = StreamingPlatform.TWITCH,
+        type = "Serie",
+        genre = "Streaming / Gaming",
+        year = "2024",
+        duration = "Directo",
+        rating = "★ 9.6",
+        synopsis = "Transmisión interactiva en tiempo real con comentarios sincronizados y diversión en pareja.",
+        posterUrl = "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80",
+        videoStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4",
+        aspectRatio = 16f / 9f,
+        formatName = "16:9 HD"
+    )
+)
+
 data class CinemaGifItem(
     val title: String,
     val category: String,
@@ -215,6 +519,43 @@ fun CineScreen(
     var chatInput by remember { mutableStateOf("") }
     var showSyncFlash by remember { mutableStateOf(false) }
 
+    // Catalog & Selected Movie state
+    var selectedMovie by remember(selectedPlatform) {
+        mutableStateOf(
+            PLATFORM_CATALOG_MOVIES.firstOrNull { it.platform == selectedPlatform }
+                ?: PLATFORM_CATALOG_MOVIES.first()
+        )
+    }
+    var isCatalogOpen by remember { mutableStateOf(false) }
+
+    // Audio, Subtitles & Quality settings
+    var selectedAudio by remember(selectedMovie) {
+        mutableStateOf(selectedMovie.availableAudios.firstOrNull() ?: "Español Latino (5.1 Dolby)")
+    }
+    var selectedSubtitle by remember(selectedMovie) {
+        mutableStateOf(selectedMovie.availableSubtitles.getOrNull(1) ?: "Español Latino")
+    }
+    var selectedQuality by remember(selectedMovie) {
+        mutableStateOf(selectedMovie.availableQualities.getOrNull(1) ?: "1080p Full HD (60 FPS)")
+    }
+
+    // Video aspect ratio adaptation
+    var selectedAspectMode by remember { mutableStateOf(CinemaAspectMode.AUTO) }
+    var isPlayerMenuExpanded by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
+    var showQualityDialog by remember { mutableStateOf(false) }
+    var showAspectDialog by remember { mutableStateOf(false) }
+
+    val effectiveAspectRatio = selectedAspectMode.ratio ?: selectedMovie.aspectRatio
+    val animatedAspectRatio by animateFloatAsState(
+        targetValue = effectiveAspectRatio,
+        animationSpec = spring(
+            dampingRatio = 0.82f,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "cinema_viewport_aspect_ratio"
+    )
+
     // Modals state
     var isFullScreenOpen by remember { mutableStateOf(false) }
     var fullScreenTargetUrl by remember { mutableStateOf(selectedPlatform.loginUrl) }
@@ -249,6 +590,71 @@ fun CineScreen(
         animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "chevronRotation"
     )
+
+    // Language & Subtitles Selection Dialog
+    if (showLanguageDialog) {
+        CinemaAudioSubtitleDialog(
+            platform = selectedPlatform,
+            movie = selectedMovie,
+            selectedAudio = selectedAudio,
+            selectedSubtitle = selectedSubtitle,
+            onSelectAudio = { audio ->
+                selectedAudio = audio
+                viewModel.sendCinemaMessage("🎧 Audio seleccionado: $audio")
+            },
+            onSelectSubtitle = { sub ->
+                selectedSubtitle = sub
+                viewModel.sendCinemaMessage("💬 Subtítulos: $sub")
+            },
+            onDismiss = { showLanguageDialog = false }
+        )
+    }
+
+    // Video Quality Selection Dialog
+    if (showQualityDialog) {
+        CinemaQualityDialog(
+            platform = selectedPlatform,
+            movie = selectedMovie,
+            selectedQuality = selectedQuality,
+            onSelectQuality = { quality ->
+                selectedQuality = quality
+                viewModel.sendCinemaMessage("⚡ Calidad de video: $quality")
+            },
+            onDismiss = { showQualityDialog = false }
+        )
+    }
+
+    // Aspect Ratio / Formato Selection Dialog
+    if (showAspectDialog) {
+        CinemaAspectDialog(
+            currentMovie = selectedMovie,
+            selectedAspectMode = selectedAspectMode,
+            onSelectAspectMode = { mode ->
+                selectedAspectMode = mode
+            },
+            onDismiss = { showAspectDialog = false }
+        )
+    }
+
+    // Platform Movies & Series Catalog Dialog (Opened from 3-dots menu or "Catálogo")
+    if (isCatalogOpen) {
+        PlatformCatalogDialog(
+            platform = selectedPlatform,
+            currentSelectedMovie = selectedMovie,
+            onSelectMovie = { movie ->
+                selectedMovie = movie
+                viewModel.leaderSetPlaying(true)
+                viewModel.sendCinemaMessage("🎬 Ahora viendo juntos: ${movie.title} (${movie.type})")
+                isCatalogOpen = false
+            },
+            onOpenWebLogin = {
+                fullScreenTargetUrl = selectedPlatform.loginUrl
+                isCatalogOpen = false
+                isFullScreenOpen = true
+            },
+            onDismiss = { isCatalogOpen = false }
+        )
+    }
 
     // Fullscreen in-app Dialog/Window for logging in or watching full screen
     if (isFullScreenOpen) {
@@ -466,204 +872,357 @@ fun CineScreen(
             }
         }
 
-        // 2. FIXED PLAYER CARD (STAYS AT THE TOP OF THE SCREEN ALWAYS)
+        // 2. FIXED CINEMA PLAYER (ADAPTS ITS SHAPE TO THE VIDEO FORMAT)
         GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("cinema_main_player"),
             shape = RoundedCornerShape(20.dp),
-            borderColor = selectedPlatform.tagColor.copy(alpha = 0.5f)
+            borderColor = selectedPlatform.tagColor.copy(alpha = 0.6f)
         ) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                selectedPlatform.tagColor.copy(alpha = 0.25f),
-                                DarkSurfaceElevated,
-                                DarkBackground
-                            )
-                        )
-                    )
-                    .padding(12.dp)
+                    .background(DarkBackground)
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(
+                // Top header row: 3-dots options menu on top-left, Platform info & Title, Status & Mic
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Top badges row (Platform badge + Play status indicator & Mic)
+                    // Left section: 3-dots menu button, platform badge, title & details
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Box(
+                        // 3-DOTS OPTIONS MENU (Top-Left of Player)
+                        Box {
+                            IconButton(
+                                onClick = { isPlayerMenuExpanded = true },
                                 modifier = Modifier
-                                    .size(34.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(selectedPlatform.tagColor.copy(alpha = 0.25f))
-                                    .border(1.dp, selectedPlatform.tagColor.copy(alpha = 0.6f), RoundedCornerShape(10.dp)),
-                                contentAlignment = Alignment.Center
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(DarkSurfaceElevated)
+                                    .border(1.dp, selectedPlatform.tagColor.copy(alpha = 0.5f), CircleShape)
+                                    .testTag("cinema_player_three_dots_menu")
                             ) {
-                                Text(text = selectedPlatform.iconEmoji, fontSize = 18.sp)
+                                Icon(
+                                    imageVector = Icons.Filled.MoreVert,
+                                    contentDescription = "Opciones del reproductor",
+                                    tint = TextPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
 
-                            Column {
-                                Text(
-                                    text = selectedPlatform.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary
+                            DropdownMenu(
+                                expanded = isPlayerMenuExpanded,
+                                onDismissRequest = { isPlayerMenuExpanded = false },
+                                modifier = Modifier
+                                    .background(DarkSurfaceElevated)
+                                    .border(1.dp, DarkCardBorder, RoundedCornerShape(14.dp))
+                                    .width(260.dp)
+                            ) {
+                                // 1. Elegir Película / Serie
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(
+                                                text = "Elegir Película / Serie",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White
+                                            )
+                                            Text(
+                                                text = "Catálogo de ${selectedPlatform.title}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = TextMuted,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Filled.MovieCreation,
+                                            contentDescription = null,
+                                            tint = selectedPlatform.tagColor
+                                        )
+                                    },
+                                    onClick = {
+                                        isPlayerMenuExpanded = false
+                                        isCatalogOpen = true
+                                    }
                                 )
-                                Text(
-                                    text = selectedPlatform.subtitle,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = selectedPlatform.tagColor,
-                                    fontSize = 10.sp
+
+                                HorizontalDivider(color = DarkCardBorder.copy(alpha = 0.5f), thickness = 0.5.dp)
+
+                                // 2. Idioma de Audio y Subtítulos
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(
+                                                text = "Idioma y Subtítulos",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White
+                                            )
+                                            Text(
+                                                text = "Audio: $selectedAudio",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = selectedPlatform.tagColor,
+                                                fontSize = 10.sp,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Filled.Language,
+                                            contentDescription = null,
+                                            tint = RosePrimary
+                                        )
+                                    },
+                                    onClick = {
+                                        isPlayerMenuExpanded = false
+                                        showLanguageDialog = true
+                                    }
+                                )
+
+                                HorizontalDivider(color = DarkCardBorder.copy(alpha = 0.5f), thickness = 0.5.dp)
+
+                                // 3. Calidad de Video
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(
+                                                text = "Calidad de Video",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White
+                                            )
+                                            Text(
+                                                text = selectedQuality,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = selectedPlatform.tagColor,
+                                                fontSize = 10.sp,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Filled.HighQuality,
+                                            contentDescription = null,
+                                            tint = Color(0xFFFFD700)
+                                        )
+                                    },
+                                    onClick = {
+                                        isPlayerMenuExpanded = false
+                                        showQualityDialog = true
+                                    }
+                                )
+
+                                HorizontalDivider(color = DarkCardBorder.copy(alpha = 0.5f), thickness = 0.5.dp)
+
+                                // 4. Formato de Pantalla / Aspect Ratio
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(
+                                                text = "Formato de Pantalla",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White
+                                            )
+                                            Text(
+                                                text = if (selectedAspectMode == CinemaAspectMode.AUTO) "Auto (${selectedMovie.formatName})" else selectedAspectMode.label,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = TextMuted,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Filled.AspectRatio,
+                                            contentDescription = null,
+                                            tint = TextPrimary
+                                        )
+                                    },
+                                    onClick = {
+                                        isPlayerMenuExpanded = false
+                                        showAspectDialog = true
+                                    }
+                                )
+
+                                HorizontalDivider(color = DarkCardBorder.copy(alpha = 0.5f), thickness = 0.5.dp)
+
+                                // 5. Iniciar sesión / Web Login
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = "Iniciar Sesión en ${selectedPlatform.title}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = TextPrimary
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Text(selectedPlatform.iconEmoji, fontSize = 16.sp)
+                                    },
+                                    onClick = {
+                                        isPlayerMenuExpanded = false
+                                        fullScreenTargetUrl = selectedPlatform.loginUrl
+                                        isFullScreenOpen = true
+                                    }
                                 )
                             }
                         }
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        // Platform Icon Badge
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(selectedPlatform.tagColor.copy(alpha = 0.35f))
+                                .border(1.dp, selectedPlatform.tagColor.copy(alpha = 0.8f), RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            // Status badge
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(50))
-                                    .background(DarkBackground.copy(alpha = 0.7f))
-                                    .border(1.dp, selectedPlatform.tagColor.copy(alpha = 0.5f), RoundedCornerShape(50))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            Text(text = selectedPlatform.iconEmoji, fontSize = 16.sp)
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = selectedMovie.title,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                maxLines = 1
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                Text(
+                                    text = "${selectedMovie.type} • ${selectedMovie.year}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextMuted,
+                                    fontSize = 9.sp
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(selectedPlatform.tagColor.copy(alpha = 0.25f))
+                                        .padding(horizontal = 3.dp, vertical = 1.dp)
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(if (isPlaying) SuccessGreen else RosePrimary)
-                                    )
                                     Text(
-                                        text = if (isPlaying) "Reproduciendo" else "En Pausa",
+                                        text = selectedMovie.rating,
                                         style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 9.sp,
-                                        color = TextPrimary,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = selectedPlatform.tagColor
                                     )
                                 }
-                            }
-
-                            // Mic status
-                            Box(
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isMicActive) SuccessGreen else DarkBackground.copy(alpha = 0.7f))
-                                    .border(1.dp, DarkCardBorder, CircleShape)
-                                    .clickable { viewModel.toggleMic() }
-                                    .testTag("cinema_mic_button"),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = if (isMicActive) Icons.Filled.Mic else Icons.Filled.MicOff,
-                                    contentDescription = "Micrófono",
-                                    tint = if (isMicActive) DarkBackground else TextMuted,
-                                    modifier = Modifier.size(15.dp)
-                                )
                             }
                         }
                     }
 
-                    // Player Control & In-App Streaming Buttons
+                    // Right section: Status badge & Mic
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        // Play/Pause Leader Control Button
+                        // Play status badge
                         Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(DarkSurfaceElevated)
-                                .border(1.dp, DarkCardBorder, RoundedCornerShape(12.dp))
-                                .clickable {
-                                    viewModel.leaderSetPlaying(!isPlaying)
-                                }
-                                .padding(vertical = 10.dp)
-                                .testTag("cinema_leader_play_pause_btn"),
-                            contentAlignment = Alignment.Center
+                                .clip(RoundedCornerShape(50))
+                                .background(DarkBackground.copy(alpha = 0.8f))
+                                .border(1.dp, if (isPlaying) SuccessGreen.copy(alpha = 0.6f) else RosePrimary.copy(alpha = 0.6f), RoundedCornerShape(50))
+                                .padding(horizontal = 7.dp, vertical = 4.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
                             ) {
-                                Icon(
-                                    imageVector = if (isPlaying) Icons.Filled.PauseCircleFilled else Icons.Filled.PlayCircleFilled,
-                                    contentDescription = if (isPlaying) "Pausar" else "Reproducir",
-                                    tint = RosePrimary,
-                                    modifier = Modifier.size(18.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(5.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isPlaying) SuccessGreen else RosePrimary)
                                 )
                                 Text(
-                                    text = if (isPlaying) "Pausar" else "Reanudar",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
+                                    text = if (isPlaying) "En Vivo" else "Pausa",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 9.sp,
                                     color = TextPrimary,
-                                    fontSize = 12.sp
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
                         }
 
-                        // Open In-App Streaming Window Button
+                        // Mic status
                         Box(
                             modifier = Modifier
-                                .weight(1.3f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(
-                                    Brush.horizontalGradient(
-                                        listOf(selectedPlatform.tagColor, selectedPlatform.secondaryColor)
-                                    )
-                                )
-                                .clickable {
-                                    fullScreenTargetUrl = selectedPlatform.loginUrl
-                                    isFullScreenOpen = true
-                                }
-                                .padding(vertical = 10.dp)
-                                .testTag("btn_login_platform_${selectedPlatform.name.lowercase()}"),
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(if (isMicActive) SuccessGreen else DarkBackground.copy(alpha = 0.8f))
+                                .border(1.dp, DarkCardBorder, CircleShape)
+                                .clickable { viewModel.toggleMic() }
+                                .testTag("cinema_mic_button"),
                             contentAlignment = Alignment.Center
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Key,
-                                    contentDescription = "Iniciar Sesión",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Text(
-                                    text = "Abrir ${selectedPlatform.title}",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    fontSize = 12.sp
-                                )
-                            }
+                            Icon(
+                                imageVector = if (isMicActive) Icons.Filled.Mic else Icons.Filled.MicOff,
+                                contentDescription = "Micrófono",
+                                tint = if (isMicActive) DarkBackground else TextMuted,
+                                modifier = Modifier.size(14.dp)
+                            )
                         }
                     }
                 }
 
-                // Floating emojis layer
-                floaters.forEach { floater ->
-                    FloaterEmojiView(floater = floater)
+                // Video Screen Box (ADAPTS ITS SHAPE AUTOMATICALLY TO THE VIDEO FORMAT)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(animatedAspectRatio)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color.Black)
+                        .border(1.dp, selectedPlatform.tagColor.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CinemaPureVideoPlayer(
+                        videoUrl = selectedMovie.videoStreamUrl,
+                        isPlaying = isPlaying,
+                        onTogglePlayPause = { viewModel.leaderSetPlaying(!isPlaying) }
+                    )
+
+                    // Floating emojis layer inside the player viewport
+                    floaters.forEach { floater ->
+                        FloaterEmojiView(floater = floater)
+                    }
+
+                    // Central play overlay icon when paused (reproduces directly with play button)
+                    if (!isPlaying) {
+                        Box(
+                            modifier = Modifier
+                                .size(54.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.7f))
+                                .border(1.5.dp, RosePrimary, CircleShape)
+                                .clickable { viewModel.leaderSetPlaying(true) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.PlayArrow,
+                                contentDescription = "Reproducir",
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
                 }
 
                 // Sync Flash Overlay
@@ -694,7 +1253,7 @@ fun CineScreen(
             }
         }
 
-        // 3. INDEPENDENTLY SCROLLING CHAT CARD (TAKES REMAINING SPACE)
+        // 3. INDEPENDENTLY SCROLLING CHAT CARD AT BOTTOM (EXPANDS TO FILL SCREEN)
         GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1313,6 +1872,511 @@ fun CinemaMomentPhotoDialog(
 }
 
 /**
+ * Audio and Subtitles Selector Dialog
+ */
+@Composable
+fun CinemaAudioSubtitleDialog(
+    platform: StreamingPlatform,
+    movie: CinemaMovieItem,
+    selectedAudio: String,
+    selectedSubtitle: String,
+    onSelectAudio: (String) -> Unit,
+    onSelectSubtitle: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.65f))
+                .clickable { onDismiss() }
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = false) {},
+                shape = RoundedCornerShape(24.dp),
+                borderColor = platform.tagColor.copy(alpha = 0.8f)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(platform.tagColor.copy(alpha = 0.25f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(imageVector = Icons.Filled.Language, contentDescription = null, tint = platform.tagColor, modifier = Modifier.size(20.dp))
+                            }
+                            Column {
+                                Text(
+                                    text = "Idioma y Subtítulos",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
+                                )
+                                Text(
+                                    text = "${movie.title} • ${platform.title}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextMuted,
+                                    fontSize = 10.sp,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                            Icon(imageVector = Icons.Filled.Close, contentDescription = "Cerrar", tint = TextMuted)
+                        }
+                    }
+
+                    // Section 1: Audio / Doblaje
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "🎧 PISTA DE AUDIO",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = platform.tagColor,
+                            letterSpacing = 1.sp,
+                            fontSize = 10.sp
+                        )
+
+                        movie.availableAudios.forEach { audio ->
+                            val isSelected = selectedAudio == audio
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) platform.tagColor.copy(alpha = 0.2f) else DarkSurfaceElevated)
+                                    .border(
+                                        width = if (isSelected) 1.5.dp else 1.dp,
+                                        color = if (isSelected) platform.tagColor else DarkCardBorder,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable {
+                                        onSelectAudio(audio)
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 9.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.VolumeUp,
+                                            contentDescription = null,
+                                            tint = if (isSelected) platform.tagColor else TextMuted,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = audio,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = if (isSelected) Color.White else TextPrimary,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Check,
+                                            contentDescription = "Activo",
+                                            tint = platform.tagColor,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Section 2: Subtítulos
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "💬 SUBTÍTULOS",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = RosePrimary,
+                            letterSpacing = 1.sp,
+                            fontSize = 10.sp
+                        )
+
+                        movie.availableSubtitles.forEach { sub ->
+                            val isSelected = selectedSubtitle == sub
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) RosePrimary.copy(alpha = 0.2f) else DarkSurfaceElevated)
+                                    .border(
+                                        width = if (isSelected) 1.5.dp else 1.dp,
+                                        color = if (isSelected) RosePrimary else DarkCardBorder,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable {
+                                        onSelectSubtitle(sub)
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Subtitles,
+                                            contentDescription = null,
+                                            tint = if (isSelected) RosePrimary else TextMuted,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = sub,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = if (isSelected) Color.White else TextPrimary,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Check,
+                                            contentDescription = "Activo",
+                                            tint = RosePrimary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    RoseGradientButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Aplicar y Volver al Reproductor", color = DarkBackground, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Video Quality Selector Dialog
+ */
+@Composable
+fun CinemaQualityDialog(
+    platform: StreamingPlatform,
+    movie: CinemaMovieItem,
+    selectedQuality: String,
+    onSelectQuality: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.65f))
+                .clickable { onDismiss() }
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = false) {},
+                shape = RoundedCornerShape(24.dp),
+                borderColor = Color(0xFFFFD700).copy(alpha = 0.7f)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFFFFD700).copy(alpha = 0.25f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(imageVector = Icons.Filled.HighQuality, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(20.dp))
+                            }
+                            Column {
+                                Text(
+                                    text = "Calidad de Video",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
+                                )
+                                Text(
+                                    text = "Disponible en ${platform.title}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextMuted,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+
+                        IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                            Icon(imageVector = Icons.Filled.Close, contentDescription = "Cerrar", tint = TextMuted)
+                        }
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        movie.availableQualities.forEach { quality ->
+                            val isSelected = selectedQuality == quality
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) Color(0xFFFFD700).copy(alpha = 0.18f) else DarkSurfaceElevated)
+                                    .border(
+                                        width = if (isSelected) 1.5.dp else 1.dp,
+                                        color = if (isSelected) Color(0xFFFFD700) else DarkCardBorder,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable {
+                                        onSelectQuality(quality)
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Hd,
+                                            contentDescription = null,
+                                            tint = if (isSelected) Color(0xFFFFD700) else TextMuted,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = quality,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = if (isSelected) Color.White else TextPrimary,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Check,
+                                            contentDescription = "Activo",
+                                            tint = Color(0xFFFFD700),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    RoseGradientButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Confirmar Calidad", color = DarkBackground, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Aspect Ratio / Screen Format Selector Dialog
+ */
+@Composable
+fun CinemaAspectDialog(
+    currentMovie: CinemaMovieItem,
+    selectedAspectMode: CinemaAspectMode,
+    onSelectAspectMode: (CinemaAspectMode) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.65f))
+                .clickable { onDismiss() }
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = false) {},
+                shape = RoundedCornerShape(24.dp),
+                borderColor = RosePrimary.copy(alpha = 0.7f)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(RosePrimary.copy(alpha = 0.25f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(imageVector = Icons.Filled.AspectRatio, contentDescription = null, tint = RosePrimary, modifier = Modifier.size(20.dp))
+                            }
+                            Column {
+                                Text(
+                                    text = "Formato de Pantalla",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
+                                )
+                                Text(
+                                    text = "Adapta la forma del reproductor",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextMuted,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+
+                        IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                            Icon(imageVector = Icons.Filled.Close, contentDescription = "Cerrar", tint = TextMuted)
+                        }
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CinemaAspectMode.entries.forEach { mode ->
+                            val isSelected = selectedAspectMode == mode
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) RosePrimary.copy(alpha = 0.2f) else DarkSurfaceElevated)
+                                    .border(
+                                        width = if (isSelected) 1.5.dp else 1.dp,
+                                        color = if (isSelected) RosePrimary else DarkCardBorder,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable {
+                                        onSelectAspectMode(mode)
+                                        onDismiss()
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 11.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Text(text = mode.icon, fontSize = 16.sp)
+                                        Column {
+                                            Text(
+                                                text = if (mode == CinemaAspectMode.AUTO) "Auto / Original (${currentMovie.formatName})" else mode.label,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = if (isSelected) Color.White else TextPrimary,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                fontSize = 12.sp
+                                            )
+                                            if (mode == CinemaAspectMode.AUTO) {
+                                                Text(
+                                                    text = "Adapta automáticamente a ${currentMovie.formatName}",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = RosePrimary,
+                                                    fontSize = 9.sp
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Check,
+                                            contentDescription = "Activo",
+                                            tint = RosePrimary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
  * Fullscreen in-app Dialog for logging in to Netflix/Prime/Disney or viewing stream in full screen
  */
 @Composable
@@ -1617,4 +2681,464 @@ private fun saveBitmapToInternalCache(context: Context, bitmap: Bitmap): String 
         bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
     }
     return file.absolutePath
+}
+
+/**
+ * Clean Pure Video Player that renders ONLY the video stream without web chrome/ads
+ */
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+fun CinemaPureVideoPlayer(
+    videoUrl: String,
+    isPlaying: Boolean,
+    onTogglePlayPause: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var webViewInstance by remember { mutableStateOf<WebView?>(null) }
+
+    LaunchedEffect(isPlaying, webViewInstance) {
+        webViewInstance?.let { wv ->
+            val js = if (isPlaying) {
+                "var v = document.getElementById('cinema_video'); if (v) { v.play(); }"
+            } else {
+                "var v = document.getElementById('cinema_video'); if (v) { v.pause(); }"
+            }
+            wv.evaluateJavascript(js, null)
+        }
+    }
+
+    LaunchedEffect(videoUrl) {
+        webViewInstance?.let { wv ->
+            val html = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                    <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
+                        body, html { width: 100%; height: 100%; overflow: hidden; background: #000000; display: flex; align-items: center; justify-content: center; }
+                        video { width: 100%; height: 100%; object-fit: contain; background: #000; outline: none; }
+                    </style>
+                </head>
+                <body>
+                    <video id="cinema_video" src="$videoUrl" autoplay ${if (isPlaying) "autoplay" else ""} loop playsinline webkit-playsinline></video>
+                    <script>
+                        var v = document.getElementById('cinema_video');
+                        if (v) {
+                            ${if (isPlaying) "v.play();" else "v.pause();"}
+                        }
+                    </script>
+                </body>
+                </html>
+            """.trimIndent()
+            wv.loadDataWithBaseURL("https://cinema.local", html, "text/html", "UTF-8", null)
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize().background(Color.Black).clickable { onTogglePlayPause() }) {
+        AndroidView(
+            factory = { ctx ->
+                WebView(ctx).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    settings.apply {
+                        javaScriptEnabled = true
+                        domStorageEnabled = true
+                        mediaPlaybackRequiresUserGesture = false
+                        useWideViewPort = true
+                        loadWithOverviewMode = true
+                        cacheMode = WebSettings.LOAD_DEFAULT
+                        mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                    }
+                    setBackgroundColor(android.graphics.Color.BLACK)
+                    webChromeClient = WebChromeClient()
+                    webViewClient = WebViewClient()
+
+                    val html = """
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                            <style>
+                                * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
+                                body, html { width: 100%; height: 100%; overflow: hidden; background: #000000; display: flex; align-items: center; justify-content: center; }
+                                video { width: 100%; height: 100%; object-fit: contain; background: #000; outline: none; }
+                            </style>
+                        </head>
+                        <body>
+                            <video id="cinema_video" src="$videoUrl" autoplay ${if (isPlaying) "autoplay" else ""} loop playsinline webkit-playsinline></video>
+                            <script>
+                                var v = document.getElementById('cinema_video');
+                                if (v) {
+                                    ${if (isPlaying) "v.play();" else "v.pause();"}
+                                }
+                            </script>
+                        </body>
+                        </html>
+                    """.trimIndent()
+                    loadDataWithBaseURL("https://cinema.local", html, "text/html", "UTF-8", null)
+                    webViewInstance = this
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+/**
+ * Platform Catalog Modal Dialog (Lists movies & series of the selected platform to choose & watch)
+ */
+@Composable
+fun PlatformCatalogDialog(
+    platform: StreamingPlatform,
+    currentSelectedMovie: CinemaMovieItem,
+    onSelectMovie: (CinemaMovieItem) -> Unit,
+    onOpenWebLogin: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("Todos") }
+    val categories = listOf("Todos", "Películas", "Series", "Romance", "Acción")
+
+    val platformMovies = remember(platform) {
+        PLATFORM_CATALOG_MOVIES.filter { it.platform == platform }
+    }
+
+    val filteredMovies = remember(platformMovies, searchQuery, selectedCategory) {
+        platformMovies.filter { item ->
+            val matchesCategory = when (selectedCategory) {
+                "Todos" -> true
+                "Películas" -> item.type.contains("Película", ignoreCase = true)
+                "Series" -> item.type.contains("Serie", ignoreCase = true)
+                "Romance" -> item.genre.contains("Romance", ignoreCase = true)
+                "Acción" -> item.genre.contains("Acción", ignoreCase = true) || item.genre.contains("Ficción", ignoreCase = true)
+                else -> true
+            }
+            val matchesSearch = searchQuery.isBlank() ||
+                    item.title.contains(searchQuery, ignoreCase = true) ||
+                    item.genre.contains(searchQuery, ignoreCase = true) ||
+                    item.synopsis.contains(searchQuery, ignoreCase = true)
+
+            matchesCategory && matchesSearch
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.75f))
+                .clickable { onDismiss() }
+                .padding(horizontal = 14.dp, vertical = 20.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.92f)
+                    .clickable(enabled = false) {},
+                shape = RoundedCornerShape(24.dp),
+                borderColor = platform.tagColor.copy(alpha = 0.8f)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Header Bar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(platform.tagColor.copy(alpha = 0.28f))
+                                    .border(1.dp, platform.tagColor, RoundedCornerShape(10.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(text = platform.iconEmoji, fontSize = 20.sp)
+                            }
+
+                            Column {
+                                Text(
+                                    text = "Catálogo de ${platform.title}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
+                                )
+                                Text(
+                                    text = "Elige qué ver juntos en la sala",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextMuted,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(DarkSurfaceElevated)
+                        ) {
+                            Icon(imageVector = Icons.Filled.Close, contentDescription = "Cerrar", tint = TextPrimary, modifier = Modifier.size(16.dp))
+                        }
+                    }
+
+                    // Search Field
+                    TextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Buscar en ${platform.title}...", color = TextMuted, fontSize = 12.sp) },
+                        leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null, tint = platform.tagColor, modifier = Modifier.size(18.dp)) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(imageVector = Icons.Filled.Clear, contentDescription = "Limpiar", tint = TextMuted, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(14.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = DarkSurfaceElevated,
+                            unfocusedContainerColor = DarkSurfaceElevated,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            cursorColor = platform.tagColor,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Category Filter Chips
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        categories.forEach { cat ->
+                            val isSelected = selectedCategory == cat
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .background(if (isSelected) platform.tagColor else DarkSurfaceElevated)
+                                    .border(1.dp, if (isSelected) platform.tagColor else DarkCardBorder, RoundedCornerShape(50))
+                                    .clickable { selectedCategory = cat }
+                                    .padding(horizontal = 12.dp, vertical = 5.dp)
+                            ) {
+                                Text(
+                                    text = cat,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (isSelected) Color.White else TextPrimary,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+
+                    // Movie & Series List
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(filteredMovies, key = { it.id }) { movie ->
+                            val isCurrent = movie.id == currentSelectedMovie.id
+                            GlassCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                borderColor = if (isCurrent) platform.tagColor else DarkCardBorder.copy(alpha = 0.6f)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    // Movie Poster
+                                    Box(
+                                        modifier = Modifier
+                                            .width(80.dp)
+                                            .height(115.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(DarkSurfaceElevated)
+                                    ) {
+                                        AsyncImage(
+                                            model = movie.posterUrl,
+                                            contentDescription = movie.title,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.TopStart)
+                                                .padding(4.dp)
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(Color.Black.copy(alpha = 0.75f))
+                                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                                        ) {
+                                            Text(
+                                                text = movie.type,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = platform.tagColor
+                                            )
+                                        }
+                                    }
+
+                                    // Movie Information & "VER" Button
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = movie.title,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextPrimary,
+                                            fontSize = 13.sp,
+                                            maxLines = 1
+                                        )
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = "${movie.genre} • ${movie.duration}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = TextMuted,
+                                                fontSize = 10.sp
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .background(platform.tagColor.copy(alpha = 0.2f))
+                                                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                                            ) {
+                                                Text(
+                                                    text = movie.rating,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontSize = 8.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = platform.tagColor
+                                                )
+                                            }
+                                        }
+
+                                        Text(
+                                            text = movie.synopsis,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = TextPrimary.copy(alpha = 0.75f),
+                                            fontSize = 10.sp,
+                                            maxLines = 2
+                                        )
+
+                                        Spacer(modifier = Modifier.height(2.dp))
+
+                                        // Prominent "VER" Button
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(
+                                                    Brush.horizontalGradient(
+                                                        listOf(platform.tagColor, platform.secondaryColor)
+                                                    )
+                                                )
+                                                .clickable { onSelectMovie(movie) }
+                                                .padding(vertical = 8.dp)
+                                                .testTag("btn_watch_${movie.id}"),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Filled.PlayArrow,
+                                                    contentDescription = "Ver",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Text(
+                                                    text = if (isCurrent) "▶ Ver Ahora (En Reproductor)" else "▶ Ver ${movie.type}",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (filteredMovies.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text(text = "🎬", fontSize = 32.sp)
+                                        Text(text = "No se encontraron títulos", color = TextMuted, fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Bottom Option: Web Login for personal accounts
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(DarkSurfaceElevated)
+                            .border(1.dp, DarkCardBorder, RoundedCornerShape(12.dp))
+                            .clickable { onOpenWebLogin() }
+                            .padding(vertical = 9.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(imageVector = Icons.Filled.Language, contentDescription = null, tint = platform.tagColor, modifier = Modifier.size(14.dp))
+                            Text(
+                                text = "O inicia sesión en tu cuenta web de ${platform.title}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextPrimary,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
