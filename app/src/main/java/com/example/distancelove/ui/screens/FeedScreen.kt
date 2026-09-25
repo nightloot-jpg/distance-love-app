@@ -47,6 +47,7 @@ fun FeedScreen(
     modifier: Modifier = Modifier
 ) {
     val posts by viewModel.feedPosts.collectAsState()
+    val stories by viewModel.stories.collectAsState()
     val activeStory by viewModel.activeStory.collectAsState()
     var layoutMode by remember { mutableStateOf(FeedLayoutMode.FEED) }
     var showCreatePostDialog by remember { mutableStateOf(false) }
@@ -92,7 +93,7 @@ fun FeedScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        viewModel.stories.forEach { story ->
+                        stories.forEach { story ->
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
@@ -194,7 +195,7 @@ fun FeedScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "Aún no hay publicaciones. ¡Toca el botón + para subir vuestra primera foto!",
+                                    text = "Aún no hay publicaciones compartidas. ¡Toca el icono de la cámara para subir vuestra primera foto!",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = TextMuted
                                 )
@@ -358,10 +359,6 @@ private fun RealFeedPostCard(
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                post.voiceSeconds?.let { secs ->
-                    VoiceNotePlayer(totalSeconds = secs)
-                }
-
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -483,79 +480,6 @@ private fun RealFeedPostCard(
 }
 
 @Composable
-private fun VoiceNotePlayer(totalSeconds: Int) {
-    var isPlaying by remember { mutableStateOf(false) }
-    var currentSeconds by remember { mutableStateOf(0f) }
-
-    LaunchedEffect(isPlaying) {
-        if (isPlaying) {
-            while (currentSeconds < totalSeconds) {
-                delay(100)
-                currentSeconds += 0.1f
-            }
-            isPlaying = false
-            currentSeconds = 0f
-        }
-    }
-
-    val bars = remember { listOf(4, 9, 6, 12, 8, 14, 5, 10, 7, 13, 6, 9, 11, 4, 8, 12, 6, 10, 5, 7) }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(50))
-            .background(DarkSurfaceElevated)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(RoseGradient)
-                .clickable { isPlaying = !isPlaying },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                contentDescription = if (isPlaying) "Pausar" else "Reproducir audio",
-                tint = DarkBackground,
-                modifier = Modifier.size(16.dp)
-            )
-        }
-
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            bars.forEachIndexed { i, barHeight ->
-                val progressFrac = (currentSeconds / totalSeconds).coerceIn(0f, 1f)
-                val barFrac = i.toFloat() / bars.size
-                val isFilled = barFrac <= progressFrac
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height((barHeight * 1.8).dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(if (isFilled) RosePrimary else TextMuted.copy(alpha = 0.35f))
-                )
-            }
-        }
-
-        val remaining = (totalSeconds - currentSeconds.toInt()).coerceAtLeast(0)
-        Text(
-            text = String.format("0:%02d", remaining),
-            style = MaterialTheme.typography.labelSmall,
-            color = TextMuted,
-            modifier = Modifier.padding(end = 4.dp)
-        )
-    }
-}
-
-@Composable
 private fun StoryViewerDialog(
     story: StoryItem,
     onDismiss: () -> Unit
@@ -599,7 +523,7 @@ private fun StoryViewerDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${story.name} · hace 4 h",
+                        text = story.name,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )

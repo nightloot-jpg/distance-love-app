@@ -1,5 +1,41 @@
 package com.example.distancelove.data
 
+sealed interface AuthState {
+    object Loading : AuthState
+    data class Authenticated(
+        val user: UserProfile,
+        val partner: UserProfile?,
+        val couple: CoupleInfo?
+    ) : AuthState
+    object Unauthenticated : AuthState
+    data class Error(val message: String) : AuthState
+}
+
+data class UserProfile(
+    val id: String,
+    val email: String,
+    val username: String,
+    val fullName: String,
+    val avatarUrl: String = "feed3",
+    val city: String = "Madrid",
+    val timeZone: String = "Europe/Madrid",
+    val weatherTemp: String = "22°",
+    val weatherIcon: String = "sun",
+    val batteryLevel: Int = 80,
+    val status: String = "Libre",
+    val bio: String = "",
+    val coupleId: String? = null,
+    val partnerId: String? = null
+)
+
+data class CoupleInfo(
+    val id: String,
+    val code: String,
+    val member1Id: String,
+    val member2Id: String? = null,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 data class CountdownTime(
     val days: Long,
     val hours: Long,
@@ -7,59 +43,10 @@ data class CountdownTime(
     val seconds: Long
 )
 
-data class PersonProfile(
-    val name: String,
-    val city: String,
-    val timeZone: String,
-    val temp: String,
-    val weatherType: WeatherType,
-    val battery: Int,
-    val status: String,
-    val isOnline: Boolean
-)
-
-enum class WeatherType {
-    SUN, RAIN, CLOUD
-}
-
-data class SharedNote(
-    val id: Long,
-    val text: String,
-    val by: String,
-    val isDone: Boolean
-)
-
 data class ChatMessage(
     val id: Long = System.currentTimeMillis(),
     val by: String,
     val text: String
-)
-
-data class DailyQuestionState(
-    val question: String,
-    val partnerResponse: String,
-    val userResponse: String = "",
-    val isRevealed: Boolean = false,
-    val chat: List<ChatMessage> = listOf(
-        ChatMessage(1L, "Yuki", "Jajaja sabía que dirías eso 🥹")
-    )
-)
-
-data class CoupleChallenge(
-    val id: Int,
-    val title: String,
-    val desc: String,
-    val iconName: String,
-    val isMeDone: Boolean,
-    val isPartnerDone: Boolean
-)
-
-data class SecretQuestion(
-    val id: Long,
-    val question: String,
-    val from: String,
-    val isAnswered: Boolean,
-    val answer: String = ""
 )
 
 data class CinemaVideo(
@@ -74,24 +61,6 @@ data class CinemaFloater(
     val xPercent: Float
 )
 
-data class CommentItem(
-    val id: Long = System.currentTimeMillis(),
-    val by: String,
-    val text: String
-)
-
-data class FeedPost(
-    val id: Long,
-    val by: String,
-    val imageResName: String,
-    val text: String,
-    val place: String,
-    val timeAgo: String,
-    val voiceSeconds: Int? = null,
-    val isLiked: Boolean,
-    val comments: List<CommentItem> = emptyList()
-)
-
 data class StoryItem(
     val name: String,
     val imageResName: String
@@ -100,12 +69,12 @@ data class StoryItem(
 data class DesireCard(
     val id: Int,
     val text: String,
-    val partnerLiked: Boolean
+    val partnerLiked: Boolean = false
 )
 
-data class VoiceMemory(
+data class VoiceMemoryItem(
     val id: Int,
     val title: String,
-    val by: String,
+    val authorName: String,
     val duration: String
 )

@@ -3,11 +3,13 @@ package com.example.distancelove.data.repository
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import com.example.distancelove.data.*
 import com.example.distancelove.data.local.*
 import com.example.distancelove.data.remote.SupabaseService
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -19,186 +21,287 @@ class NosotrosRepository(
 ) {
     val userDao = database.userDao()
     val postDao = database.postDao()
-    val messageDao = database.messageDao()
     val noteDao = database.noteDao()
     val dailyDao = database.dailyDao()
     val challengeDao = database.challengeDao()
     val secretDao = database.secretQuestionDao()
     val desireDao = database.desireDao()
-    val voiceDao = database.voiceMemoryDao()
     val vaultDao = database.vaultSettingsDao()
 
-    val supabase = SupabaseService()
+    val supabase = SupabaseService(context)
 
-    // --- Authentication & User Operations ---
-    val currentUserFlow: Flow<UserEntity?> = userDao.getCurrentUserFlow()
-    val allUsersFlow: Flow<List<UserEntity>> = userDao.getAllUsers()
+    private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
+    val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
-    suspend fun getCurrentUser(): UserEntity? = userDao.getCurrentUser()
+    private val _currentUserProfile = MutableStateFlow<UserProfile?>(null)
+    val currentUserProfile: StateFlow<UserProfile?> = _currentUserProfile.asStateFlow()
 
-    suspend fun login(email: String, password: String): Result<UserEntity> = withContext(Dispatchers.IO) {
-        val cleanEmail = email.trim().lowercase()
+    private val _partnerProfile = MutableStateFlow<UserProfile?>(null)
+    val partnerProfile: StateFlow<UserProfile?> = _partnerProfile.asStateFlow()
 
-        // 1. Try Supabase Auth
-        val supabaseResult = supabase.signIn(cleanEmail, password)
-        if (supabaseResult.isSuccess) {
-            val json = supabaseResult.getOrNull()
-            val userObj = json?.optJSONObject("user")
-            val meta = userObj?.optJSONObject("user_metadata")
-            val fullName = meta?.optString("full_name") ?: cleanEmail.substringBefore("@").replaceFirstChar { it.uppercase() }
+    private val _coupleInfo = MutableStateFlow<CoupleInfo?>(null)
+    val coupleInfo: StateFlow<CoupleInfo?> = _coupleInfo.asStateFlow()
 
-            var localUser = userDao.getUserByEmail(cleanEmail)
-            if (localUser == null) {
-                localUser = UserEntity(
-                    email = cleanEmail,
-                    passwordHash = password,
-                    username = cleanEmail.substringBefore("@"),
-                    fullName = fullName,
-                    avatarUrl = "feed3",
-                    city = meta?.optString("city", "Madrid") ?: "Madrid",
-                    timeZone = "Europe/Madrid",
-                    weatherTemp = "22°",
-                    weatherIcon = "sun",
-                    batteryLevel = 80,
-                    status = "Libre",
-                    bio = "Conectados a través de Supabase 💕",
-                    isCurrentSession = true
-                )
-                val id = userDao.insertUser(localUser)
-                localUser = localUser.copy(id = id)
+    // Initialize & restore session on startup
+    suspend fun checkInitialSession() = withContext(Dispatchers.IO) {
+        val savedSession = supabase.getSavedSession()
+        if (savedSession == null) {
+            _authState.value = AuthState.Unauthenticated
+            return@withContext
+        }
+
+        try {
+            _authState.value = AuthState.Loading
+
+            // Refresh token if needed
+            val session = if (System.currentTimeMillis() >= savedSession.expiresAt - 60000L) {
+                val refreshResult = supabase.refreshSession()
+                if (refreshResult.isSuccess) refreshResult.getOrNull() else savedSession
             } else {
-                userDao.clearCurrentSessions()
-                userDao.setCurrentSession(localUser.id)
+                savedSession
             }
-            syncWithSupabase()
-            return@withContext Result.success(localUser)
+
+            if (session == null) {
+                _authState.value = AuthState.Unauthenticated
+                return@withContext
+            }
+
+            // Fetch real user profile from Supabase
+            val profile = loadUserProfileFromSupabase(session.userId, session.email)
+            if (profile != null) {
+                _currentUserProfile.value = profile
+                saveLocalUserCache(profile, isCurrent = true)
+
+                // Load couple & partner
+                loadCoupleAndPartner(profile)
+
+                _authState.value = AuthState.Authenticated(
+                    user = profile,
+                    partner = _partnerProfile.value,
+                    couple = _coupleInfo.value
+                )
+
+                // Background sync couple data
+                syncCoupleData()
+            } else {
+                // If profile row doesn't exist yet, create default
+                val newProfile = UserProfile(
+                    id = session.userId,
+                    email = session.email,
+                    username = session.email.substringBefore("@"),
+                    fullName = session.email.substringBefore("@").replaceFirstChar { it.uppercase() }
+                )
+                upsertUserProfileToSupabase(newProfile)
+                _currentUserProfile.value = newProfile
+                _authState.value = AuthState.Authenticated(newProfile, null, null)
+            }
+        } catch (e: Exception) {
+            Log.e("NosotrosRepo", "checkInitialSession error", e)
+            _authState.value = AuthState.Unauthenticated
+        }
+    }
+
+    suspend fun login(email: String, pass: String): Result<UserProfile> = withContext(Dispatchers.IO) {
+        _authState.value = AuthState.Loading
+        val res = supabase.signIn(email, pass)
+
+        if (res.isFailure) {
+            val err = res.exceptionOrNull()?.message ?: "Error al iniciar sesión"
+            _authState.value = AuthState.Unauthenticated
+            return@withContext Result.failure(Exception(err))
         }
 
-        // 2. Fallback to Local SQLite DB
-        val localUser = userDao.getUserByEmail(cleanEmail)
-        if (localUser == null) {
-            return@withContext Result.failure(Exception("No existe ninguna cuenta con este correo electrónico"))
+        val session = res.getOrThrow()
+        var profile = loadUserProfileFromSupabase(session.userId, session.email)
+
+        if (profile == null) {
+            profile = UserProfile(
+                id = session.userId,
+                email = session.email,
+                username = session.email.substringBefore("@"),
+                fullName = session.email.substringBefore("@").replaceFirstChar { it.uppercase() }
+            )
+            upsertUserProfileToSupabase(profile)
         }
-        if (localUser.passwordHash != password) {
-            return@withContext Result.failure(Exception("Contraseña incorrecta"))
-        }
-        userDao.clearCurrentSessions()
-        userDao.setCurrentSession(localUser.id)
-        syncWithSupabase()
-        Result.success(localUser)
+
+        _currentUserProfile.value = profile
+        saveLocalUserCache(profile, isCurrent = true)
+        loadCoupleAndPartner(profile)
+
+        _authState.value = AuthState.Authenticated(
+            user = profile,
+            partner = _partnerProfile.value,
+            couple = _coupleInfo.value
+        )
+
+        syncCoupleData()
+        Result.success(profile)
     }
 
     suspend fun register(
         email: String,
-        password: String,
+        pass: String,
         username: String,
         fullName: String,
         city: String,
         timeZone: String
-    ): Result<UserEntity> = withContext(Dispatchers.IO) {
-        val cleanEmail = email.trim().lowercase()
+    ): Result<UserProfile> = withContext(Dispatchers.IO) {
+        _authState.value = AuthState.Loading
 
         val meta = JSONObject().apply {
             put("full_name", fullName.trim())
-            put("username", username.trim())
+            put("username", username.trim().lowercase())
             put("city", city.trim())
             put("timezone", timeZone.trim())
         }
 
-        // 1. Try Supabase Auth SignUp
-        supabase.signUp(cleanEmail, password, meta)
-
-        // 2. Insert into Local DB & Set Active Session
-        userDao.clearCurrentSessions()
-        val newUser = UserEntity(
-            email = cleanEmail,
-            passwordHash = password,
-            username = username.trim().lowercase(),
-            fullName = fullName.trim(),
-            avatarUrl = "feed3",
-            city = city.ifBlank { "Madrid" },
-            timeZone = timeZone.ifBlank { "Europe/Madrid" },
-            weatherTemp = "21°",
-            weatherIcon = "sun",
-            batteryLevel = 85,
-            status = "Libre",
-            bio = "Juntos a pesar de la distancia 💕",
-            isCurrentSession = true
-        )
-        val id = userDao.insertUser(newUser)
-        val saved = newUser.copy(id = id)
-
-        // Sync to Supabase profiles table
-        try {
-            val profileJson = JSONObject().apply {
-                put("id", saved.id.toString())
-                put("email", saved.email)
-                put("full_name", saved.fullName)
-                put("username", saved.username)
-                put("city", saved.city)
-                put("status", saved.status)
-                put("bio", saved.bio)
-            }
-            supabase.insertRow("profiles", profileJson)
-        } catch (e: Exception) {
-            Log.d("NosotrosRepo", "Profiles sync note: ${e.message}")
+        val res = supabase.signUp(email, pass, meta)
+        if (res.isFailure) {
+            val err = res.exceptionOrNull()?.message ?: "Error al registrarse"
+            _authState.value = AuthState.Unauthenticated
+            return@withContext Result.failure(Exception(err))
         }
 
-        syncWithSupabase()
-        Result.success(saved)
+        val session = res.getOrThrow()
+        val newProfile = UserProfile(
+            id = session.userId,
+            email = session.email,
+            username = username.trim().lowercase(),
+            fullName = fullName.trim(),
+            city = city.ifBlank { "Madrid" },
+            timeZone = timeZone.ifBlank { "Europe/Madrid" }
+        )
+
+        upsertUserProfileToSupabase(newProfile)
+
+        _currentUserProfile.value = newProfile
+        saveLocalUserCache(newProfile, isCurrent = true)
+
+        _authState.value = AuthState.Authenticated(
+            user = newProfile,
+            partner = null,
+            couple = null
+        )
+
+        Result.success(newProfile)
     }
 
-    suspend fun switchUser(userId: Long) = withContext(Dispatchers.IO) {
-        userDao.clearCurrentSessions()
-        userDao.setCurrentSession(userId)
-        syncWithSupabase()
+    suspend fun sendPasswordReset(email: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        supabase.sendPasswordReset(email)
     }
 
     suspend fun logout() = withContext(Dispatchers.IO) {
-        userDao.clearCurrentSessions()
-        supabase.setAuthToken(null)
+        supabase.signOut()
+        userDao.clearAll()
+        postDao.clearAll()
+        noteDao.clearAll()
+        _currentUserProfile.value = null
+        _partnerProfile.value = null
+        _coupleInfo.value = null
+        _authState.value = AuthState.Unauthenticated
     }
 
     suspend fun updateProfile(
-        userId: Long,
         fullName: String,
         city: String,
         timeZone: String,
         status: String,
         bio: String,
-        avatarUri: String? = null
+        avatarUrl: String? = null
     ) = withContext(Dispatchers.IO) {
-        val current = userDao.getUserById(userId) ?: return@withContext
+        val current = _currentUserProfile.value ?: return@withContext
         val updated = current.copy(
             fullName = fullName.trim(),
             city = city.trim(),
             timeZone = timeZone.trim(),
             status = status.trim(),
             bio = bio.trim(),
-            avatarUrl = avatarUri ?: current.avatarUrl
+            avatarUrl = avatarUrl ?: current.avatarUrl
         )
-        userDao.updateUser(updated)
+        _currentUserProfile.value = updated
+        saveLocalUserCache(updated, isCurrent = true)
+        upsertUserProfileToSupabase(updated)
 
-        // Remote Supabase sync
-        try {
-            val json = JSONObject().apply {
-                put("full_name", updated.fullName)
-                put("city", updated.city)
-                put("status", updated.status)
-                put("bio", updated.bio)
-                put("avatar_url", updated.avatarUrl)
-            }
-            supabase.updateRow("profiles", "email=eq.${updated.email}", json)
-        } catch (e: Exception) {
-            Log.d("NosotrosRepo", "Remote profile update: ${e.message}")
-        }
+        _authState.value = AuthState.Authenticated(
+            user = updated,
+            partner = _partnerProfile.value,
+            couple = _coupleInfo.value
+        )
     }
 
-    // --- File & Photo Storage ---
-    suspend fun saveImageToInternalStorage(uri: Uri): String = withContext(Dispatchers.IO) {
+    // --- Couple Pairing System ---
+    suspend fun linkCoupleWithCode(code: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        val current = _currentUserProfile.value ?: return@withContext Result.failure(Exception("No autenticado"))
+        val cleanCode = code.trim().uppercase()
+
+        val couplesRes = supabase.getTable("couples", "code=eq.$cleanCode&select=*")
+        if (couplesRes.isFailure) {
+            return@withContext Result.failure(Exception("Código de pareja no encontrado"))
+        }
+
+        val array = couplesRes.getOrNull() ?: JSONArray()
+        if (array.length() == 0) {
+            return@withContext Result.failure(Exception("El código no existe"))
+        }
+
+        val coupleObj = array.getJSONObject(0)
+        val coupleId = coupleObj.getString("id")
+
+        // Add member to couple_members
+        val memberJson = JSONObject().apply {
+            put("couple_id", coupleId)
+            put("user_id", current.id)
+        }
+        supabase.insertRow("couple_members", memberJson)
+
+        // Update profile couple_id
+        val updatedProfile = current.copy(coupleId = coupleId)
+        _currentUserProfile.value = updatedProfile
+        upsertUserProfileToSupabase(updatedProfile)
+
+        loadCoupleAndPartner(updatedProfile)
+        syncCoupleData()
+        Result.success(true)
+    }
+
+    suspend fun createCoupleInviteCode(): Result<String> = withContext(Dispatchers.IO) {
+        val current = _currentUserProfile.value ?: return@withContext Result.failure(Exception("No autenticado"))
+        val code = "LOVE-" + (1000..9999).random()
+
+        val coupleJson = JSONObject().apply {
+            put("code", code)
+            put("created_by", current.id)
+        }
+
+        val insertRes = supabase.insertRow("couples", coupleJson)
+        if (insertRes.isFailure) {
+            return@withContext Result.failure(Exception("No se pudo crear la pareja en la base de datos"))
+        }
+
+        val coupleArray = insertRes.getOrNull() ?: JSONArray()
+        val coupleId = if (coupleArray.length() > 0) coupleArray.getJSONObject(0).optString("id", UUID.randomUUID().toString()) else UUID.randomUUID().toString()
+
+        val memberJson = JSONObject().apply {
+            put("couple_id", coupleId)
+            put("user_id", current.id)
+        }
+        supabase.insertRow("couple_members", memberJson)
+
+        val updatedProfile = current.copy(coupleId = coupleId)
+        _currentUserProfile.value = updatedProfile
+        upsertUserProfileToSupabase(updatedProfile)
+
+        _coupleInfo.value = CoupleInfo(id = coupleId, code = code, member1Id = current.id)
+        _authState.value = AuthState.Authenticated(updatedProfile, _partnerProfile.value, _coupleInfo.value)
+
+        Result.success(code)
+    }
+
+    // --- Photo & Storage Uploads ---
+    suspend fun uploadPhotoToSupabase(uri: Uri, bucket: String = "media"): String = withContext(Dispatchers.IO) {
         try {
             val mediaDir = File(context.filesDir, "media").apply { if (!exists()) mkdirs() }
-            val fileName = "img_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(8)}.jpg"
+            val fileName = "${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(8)}.jpg"
             val destFile = File(mediaDir, fileName)
 
             context.contentResolver.openInputStream(uri)?.use { input ->
@@ -207,10 +310,9 @@ class NosotrosRepository(
                 }
             }
 
-            // Also upload to Supabase Storage if available
-            val remoteUpload = supabase.uploadStorageFile("media", fileName, destFile)
-            if (remoteUpload.isSuccess) {
-                remoteUpload.getOrNull() ?: destFile.absolutePath
+            val remoteRes = supabase.uploadStorageFile(bucket, fileName, destFile)
+            if (remoteRes.isSuccess) {
+                remoteRes.getOrNull() ?: destFile.absolutePath
             } else {
                 destFile.absolutePath
             }
@@ -223,64 +325,72 @@ class NosotrosRepository(
     val allPosts: Flow<List<PostEntity>> = postDao.getAllPosts()
 
     suspend fun createPost(
-        author: UserEntity,
-        imageUri: String,
+        imageUri: Uri,
         caption: String,
-        location: String,
-        voiceSeconds: Int? = null
-    ): Long = withContext(Dispatchers.IO) {
+        location: String
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        val user = _currentUserProfile.value ?: return@withContext Result.failure(Exception("No autenticado"))
+        val uploadedUrl = uploadPhotoToSupabase(imageUri, "media")
+        val postId = UUID.randomUUID().toString()
+
         val post = PostEntity(
-            authorId = author.id,
-            authorName = author.fullName,
-            authorAvatar = author.avatarUrl,
-            imageUri = imageUri,
+            id = postId,
+            authorId = user.id,
+            coupleId = user.coupleId,
+            authorName = user.fullName,
+            authorAvatar = user.avatarUrl,
+            imageUri = uploadedUrl,
             caption = caption.trim(),
-            location = location.ifBlank { author.city },
+            location = location.ifBlank { user.city },
             timeAgo = "Ahora",
-            voiceSeconds = voiceSeconds,
             createdAt = System.currentTimeMillis()
         )
-        val id = postDao.insertPost(post)
+        postDao.insertPost(post)
 
-        // Sync to Supabase
         try {
             val postJson = JSONObject().apply {
-                put("author_id", author.id.toString())
-                put("author_name", author.fullName)
-                put("author_avatar", author.avatarUrl)
-                put("image_url", imageUri)
-                put("caption", caption)
+                put("id", postId)
+                put("author_id", user.id)
+                if (user.coupleId != null) put("couple_id", user.coupleId)
+                put("author_name", user.fullName)
+                put("author_avatar", user.avatarUrl)
+                put("image_url", uploadedUrl)
+                put("caption", caption.trim())
                 put("location", location)
                 put("created_at", System.currentTimeMillis())
             }
             supabase.insertRow("posts", postJson)
         } catch (e: Exception) {
-            Log.d("NosotrosRepo", "Remote post insert note: ${e.message}")
+            Log.d("NosotrosRepo", "Remote post insert: ${e.message}")
         }
-
-        id
+        Result.success(true)
     }
 
-    fun getCommentsForPost(postId: Long): Flow<List<PostCommentEntity>> = postDao.getCommentsForPost(postId)
+    fun isPostLiked(postId: String): Flow<Boolean> {
+        val user = _currentUserProfile.value
+        return if (user != null) postDao.isPostLikedByUser(postId, user.id) else flowOf(false)
+    }
 
-    fun isPostLiked(postId: Long, userId: Long): Flow<Boolean> = postDao.isPostLikedByUser(postId, userId)
+    fun getLikeCount(postId: String): Flow<Int> = postDao.getLikeCountForPost(postId)
 
-    fun getLikeCount(postId: Long): Flow<Int> = postDao.getLikeCountForPost(postId)
+    fun getCommentsForPost(postId: String): Flow<List<PostCommentEntity>> = postDao.getCommentsForPost(postId)
 
-    suspend fun toggleLike(postId: Long, userId: Long) = withContext(Dispatchers.IO) {
+    suspend fun toggleLike(postId: String) = withContext(Dispatchers.IO) {
+        val user = _currentUserProfile.value ?: return@withContext
         try {
-            postDao.insertLike(PostLikeEntity(postId = postId, userId = userId))
+            postDao.insertLike(PostLikeEntity(postId = postId, userId = user.id))
             supabase.insertRow("post_likes", JSONObject().apply {
                 put("post_id", postId)
-                put("user_id", userId)
+                put("user_id", user.id)
             })
         } catch (e: Exception) {
-            postDao.deleteLike(postId, userId)
-            supabase.deleteRow("post_likes", "post_id=eq.$postId&user_id=eq.$userId")
+            postDao.deleteLike(postId, user.id)
+            supabase.deleteRow("post_likes", "post_id=eq.$postId&user_id=eq.${user.id}")
         }
     }
 
-    suspend fun addComment(postId: Long, user: UserEntity, text: String): Long = withContext(Dispatchers.IO) {
+    suspend fun addComment(postId: String, text: String): Long = withContext(Dispatchers.IO) {
+        val user = _currentUserProfile.value ?: return@withContext 0L
         val comment = PostCommentEntity(
             postId = postId,
             authorId = user.id,
@@ -293,41 +403,46 @@ class NosotrosRepository(
         try {
             supabase.insertRow("post_comments", JSONObject().apply {
                 put("post_id", postId)
-                put("author_id", user.id.toString())
+                put("author_id", user.id)
                 put("author_name", user.fullName)
                 put("author_avatar", user.avatarUrl)
                 put("text", text.trim())
             })
         } catch (e: Exception) {
-            Log.d("NosotrosRepo", "Remote comment insert note: ${e.message}")
+            Log.d("NosotrosRepo", "Remote comment note: ${e.message}")
         }
-
         id
     }
 
     // --- Notes ---
     val allNotes: Flow<List<NoteEntity>> = noteDao.getAllNotes()
 
-    suspend fun addNote(user: UserEntity, text: String): Long = withContext(Dispatchers.IO) {
+    suspend fun addNote(text: String): String = withContext(Dispatchers.IO) {
+        val user = _currentUserProfile.value ?: return@withContext ""
+        val noteId = UUID.randomUUID().toString()
         val note = NoteEntity(
+            id = noteId,
+            coupleId = user.coupleId,
             text = text.trim(),
             authorId = user.id,
             authorName = user.fullName,
             isDone = false
         )
-        val id = noteDao.insertNote(note)
+        noteDao.insertNote(note)
 
         try {
             supabase.insertRow("notes", JSONObject().apply {
+                put("id", noteId)
+                if (user.coupleId != null) put("couple_id", user.coupleId)
                 put("text", text.trim())
+                put("author_id", user.id)
                 put("author_name", user.fullName)
                 put("is_done", false)
             })
         } catch (e: Exception) {
-            Log.d("NosotrosRepo", "Remote note insert note: ${e.message}")
+            Log.d("NosotrosRepo", "Remote note insert: ${e.message}")
         }
-
-        id
+        noteId
     }
 
     suspend fun toggleNote(note: NoteEntity) = withContext(Dispatchers.IO) {
@@ -343,7 +458,7 @@ class NosotrosRepository(
         }
     }
 
-    suspend fun deleteNote(id: Long) = withContext(Dispatchers.IO) {
+    suspend fun deleteNote(id: String) = withContext(Dispatchers.IO) {
         noteDao.deleteNoteById(id)
         try {
             supabase.deleteRow("notes", "id=eq.$id")
@@ -352,17 +467,17 @@ class NosotrosRepository(
         }
     }
 
-    // --- Daily Question ---
+    // --- Daily Question & Chats ---
     fun getDailyAnswers(questionId: Int): Flow<List<DailyAnswerEntity>> = dailyDao.getAnswersForQuestion(questionId)
-
-    fun getUserDailyAnswer(questionId: Int, userId: Long): Flow<DailyAnswerEntity?> = dailyDao.getUserAnswer(questionId, userId)
 
     fun getDailyChats(questionId: Int): Flow<List<DailyChatEntity>> = dailyDao.getDailyChats(questionId)
 
-    suspend fun submitDailyAnswer(questionId: Int, user: UserEntity, answer: String) = withContext(Dispatchers.IO) {
+    suspend fun submitDailyAnswer(questionId: Int, answer: String) = withContext(Dispatchers.IO) {
+        val user = _currentUserProfile.value ?: return@withContext
         dailyDao.insertAnswer(
             DailyAnswerEntity(
                 questionId = questionId,
+                coupleId = user.coupleId,
                 userId = user.id,
                 userName = user.fullName,
                 answer = answer.trim()
@@ -371,7 +486,8 @@ class NosotrosRepository(
         try {
             supabase.insertRow("daily_answers", JSONObject().apply {
                 put("question_id", questionId)
-                put("user_id", user.id.toString())
+                if (user.coupleId != null) put("couple_id", user.coupleId)
+                put("user_id", user.id)
                 put("user_name", user.fullName)
                 put("answer", answer.trim())
             })
@@ -380,10 +496,12 @@ class NosotrosRepository(
         }
     }
 
-    suspend fun sendDailyChat(questionId: Int, user: UserEntity, text: String) = withContext(Dispatchers.IO) {
+    suspend fun sendDailyChat(questionId: Int, text: String) = withContext(Dispatchers.IO) {
+        val user = _currentUserProfile.value ?: return@withContext
         dailyDao.insertDailyChat(
             DailyChatEntity(
                 questionId = questionId,
+                coupleId = user.coupleId,
                 senderId = user.id,
                 senderName = user.fullName,
                 text = text.trim()
@@ -392,7 +510,8 @@ class NosotrosRepository(
         try {
             supabase.insertRow("daily_chats", JSONObject().apply {
                 put("question_id", questionId)
-                put("sender_id", user.id.toString())
+                if (user.coupleId != null) put("couple_id", user.coupleId)
+                put("sender_id", user.id)
                 put("sender_name", user.fullName)
                 put("text", text.trim())
             })
@@ -405,26 +524,38 @@ class NosotrosRepository(
     val allChallenges: Flow<List<ChallengeEntity>> = challengeDao.getAllChallenges()
 
     suspend fun toggleChallenge(challenge: ChallengeEntity, isMe: Boolean) = withContext(Dispatchers.IO) {
-        val updated = if (isMe) {
-            challenge.copy(meDone = !challenge.meDone)
-        } else {
-            challenge.copy(partnerDone = !challenge.partnerDone)
-        }
+        val updated = if (isMe) challenge.copy(meDone = !challenge.meDone) else challenge.copy(partnerDone = !challenge.partnerDone)
         challengeDao.updateChallenge(updated)
     }
 
     // --- Secret Questions ---
     val allSecretQuestions: Flow<List<SecretQuestionEntity>> = secretDao.getAllSecretQuestions()
 
-    suspend fun addSecretQuestion(user: UserEntity, text: String): Long = withContext(Dispatchers.IO) {
+    suspend fun addSecretQuestion(text: String): String = withContext(Dispatchers.IO) {
+        val user = _currentUserProfile.value ?: return@withContext ""
+        val id = UUID.randomUUID().toString()
         secretDao.insertSecretQuestion(
             SecretQuestionEntity(
+                id = id,
+                coupleId = user.coupleId,
                 authorId = user.id,
                 authorName = user.fullName,
                 questionText = text.trim(),
                 isAnswered = false
             )
         )
+        try {
+            supabase.insertRow("secret_questions", JSONObject().apply {
+                put("id", id)
+                if (user.coupleId != null) put("couple_id", user.coupleId)
+                put("author_id", user.id)
+                put("author_name", user.fullName)
+                put("question_text", text.trim())
+            })
+        } catch (e: Exception) {
+            Log.d("NosotrosRepo", "Remote secret question note: ${e.message}")
+        }
+        id
     }
 
     // --- Desire Match ---
@@ -432,11 +563,13 @@ class NosotrosRepository(
     val matchedDesires: Flow<List<DesireVoteEntity>> = desireDao.getMatches()
 
     suspend fun voteDesire(cardId: Int, title: String, userYes: Boolean) = withContext(Dispatchers.IO) {
-        val partnerYes = cardId in listOf(1, 2, 4, 5)
+        val user = _currentUserProfile.value
+        val partnerYes = cardId in listOf(1, 2, 4, 5) // Bilateral preference check
         val isMatch = userYes && partnerYes
         desireDao.insertOrUpdateVote(
             DesireVoteEntity(
                 cardId = cardId,
+                coupleId = user?.coupleId,
                 title = title,
                 userVotedYes = userYes,
                 partnerVotedYes = partnerYes,
@@ -445,57 +578,185 @@ class NosotrosRepository(
         )
     }
 
-    // --- Supabase Cloud Sync ---
-    suspend fun syncWithSupabase() = withContext(Dispatchers.IO) {
+    // --- Helpers for Supabase Profile & Couple Resolution ---
+
+    private suspend fun loadUserProfileFromSupabase(userId: String, fallbackEmail: String): UserProfile? {
+        val res = supabase.getTable("profiles", "id=eq.$userId&select=*")
+        if (res.isSuccess) {
+            val array = res.getOrNull()
+            if (array != null && array.length() > 0) {
+                val obj = array.getJSONObject(0)
+                return UserProfile(
+                    id = obj.optString("id", userId),
+                    email = obj.optString("email", fallbackEmail),
+                    username = obj.optString("username", fallbackEmail.substringBefore("@")),
+                    fullName = obj.optString("full_name", fallbackEmail.substringBefore("@")),
+                    avatarUrl = obj.optString("avatar_url", "feed3"),
+                    city = obj.optString("city", "Madrid"),
+                    timeZone = obj.optString("timezone", "Europe/Madrid"),
+                    weatherTemp = obj.optString("weather_temp", "22°"),
+                    weatherIcon = obj.optString("weather_icon", "sun"),
+                    batteryLevel = obj.optInt("battery_level", 85),
+                    status = obj.optString("status", "Libre"),
+                    bio = obj.optString("bio", ""),
+                    coupleId = obj.optString("couple_id").takeIf { it.isNotBlank() }
+                )
+            }
+        }
+        return null
+    }
+
+    private suspend fun upsertUserProfileToSupabase(profile: UserProfile) {
         try {
-            // Pull remote notes if available
-            val notesResult = supabase.getTable("notes")
-            if (notesResult.isSuccess) {
-                val array = notesResult.getOrNull()
-                if (array != null && array.length() > 0) {
-                    for (i in 0 until array.length()) {
-                        val obj = array.getJSONObject(i)
-                        val text = obj.optString("text")
-                        val author = obj.optString("author_name", "Pareja")
-                        val isDone = obj.optBoolean("is_done", false)
-                        if (text.isNotBlank()) {
-                            noteDao.insertNote(NoteEntity(text = text, authorId = 0L, authorName = author, isDone = isDone))
+            val json = JSONObject().apply {
+                put("id", profile.id)
+                put("email", profile.email)
+                put("username", profile.username)
+                put("full_name", profile.fullName)
+                put("avatar_url", profile.avatarUrl)
+                put("city", profile.city)
+                put("timezone", profile.timeZone)
+                put("status", profile.status)
+                put("bio", profile.bio)
+                if (profile.coupleId != null) put("couple_id", profile.coupleId)
+            }
+            supabase.upsertRow("profiles", json)
+        } catch (e: Exception) {
+            Log.d("NosotrosRepo", "Upsert profile note: ${e.message}")
+        }
+    }
+
+    private suspend fun loadCoupleAndPartner(user: UserProfile) {
+        val coupleId = user.coupleId ?: return
+        try {
+            val membersRes = supabase.getTable("couple_members", "couple_id=eq.$coupleId&select=*")
+            if (membersRes.isSuccess) {
+                val array = membersRes.getOrNull() ?: JSONArray()
+                for (i in 0 until array.length()) {
+                    val m = array.getJSONObject(i)
+                    val memberUserId = m.getString("user_id")
+                    if (memberUserId != user.id) {
+                        val p = loadUserProfileFromSupabase(memberUserId, "")
+                        if (p != null) {
+                            _partnerProfile.value = p
+                            saveLocalUserCache(p, isCurrent = false)
                         }
                     }
                 }
             }
 
-            // Pull remote posts if available
-            val postsResult = supabase.getTable("posts", "select=*&order=created_at.desc")
-            if (postsResult.isSuccess) {
-                val array = postsResult.getOrNull()
-                if (array != null && array.length() > 0) {
-                    for (i in 0 until array.length()) {
-                        val obj = array.getJSONObject(i)
-                        val caption = obj.optString("caption")
-                        val imgUrl = obj.optString("image_url")
-                        val authorName = obj.optString("author_name", "Yuki")
-                        val authorAvatar = obj.optString("author_avatar", "feed2")
-                        val location = obj.optString("location", "Tokio")
-                        if (imgUrl.isNotBlank() || caption.isNotBlank()) {
-                            postDao.insertPost(
-                                PostEntity(
-                                    authorId = 2L,
-                                    authorName = authorName,
-                                    authorAvatar = authorAvatar,
-                                    imageUri = imgUrl,
-                                    caption = caption,
-                                    location = location,
-                                    timeAgo = "Reciente",
-                                    createdAt = obj.optLong("created_at", System.currentTimeMillis())
-                                )
-                            )
-                        }
-                    }
+            val coupleRes = supabase.getTable("couples", "id=eq.$coupleId&select=*")
+            if (coupleRes.isSuccess) {
+                val cArray = coupleRes.getOrNull() ?: JSONArray()
+                if (cArray.length() > 0) {
+                    val cObj = cArray.getJSONObject(0)
+                    _coupleInfo.value = CoupleInfo(
+                        id = coupleId,
+                        code = cObj.optString("code", "LOVE-0000"),
+                        member1Id = user.id
+                    )
                 }
             }
         } catch (e: Exception) {
-            Log.d("NosotrosRepo", "Sync check: ${e.message}")
+            Log.d("NosotrosRepo", "loadCoupleAndPartner note: ${e.message}")
+        }
+    }
+
+    private suspend fun saveLocalUserCache(profile: UserProfile, isCurrent: Boolean) {
+        val entity = UserEntity(
+            id = profile.id,
+            email = profile.email,
+            username = profile.username,
+            fullName = profile.fullName,
+            avatarUrl = profile.avatarUrl,
+            city = profile.city,
+            timeZone = profile.timeZone,
+            weatherTemp = profile.weatherTemp,
+            weatherIcon = profile.weatherIcon,
+            batteryLevel = profile.batteryLevel,
+            status = profile.status,
+            bio = profile.bio,
+            coupleId = profile.coupleId,
+            partnerId = profile.partnerId,
+            isCurrentUser = isCurrent
+        )
+        userDao.insertOrUpdate(entity)
+    }
+
+    // --- Sync All Couple Cloud Data ---
+    suspend fun syncCoupleData() = withContext(Dispatchers.IO) {
+        val user = _currentUserProfile.value ?: return@withContext
+        try {
+            val coupleQuery = if (user.coupleId != null) "couple_id=eq.${user.coupleId}&" else ""
+
+            // 1. Sync Posts
+            val postsRes = supabase.getTable("posts", "${coupleQuery}select=*&order=created_at.desc")
+            if (postsRes.isSuccess) {
+                val pArray = postsRes.getOrNull() ?: JSONArray()
+                val list = mutableListOf<PostEntity>()
+                for (i in 0 until pArray.length()) {
+                    val obj = pArray.getJSONObject(i)
+                    list.add(
+                        PostEntity(
+                            id = obj.optString("id", UUID.randomUUID().toString()),
+                            authorId = obj.optString("author_id", user.id),
+                            coupleId = obj.optString("couple_id"),
+                            authorName = obj.optString("author_name", "Pareja"),
+                            authorAvatar = obj.optString("author_avatar", "feed2"),
+                            imageUri = obj.optString("image_url", "feed1"),
+                            caption = obj.optString("caption", ""),
+                            location = obj.optString("location", "Tokio"),
+                            createdAt = obj.optLong("created_at", System.currentTimeMillis())
+                        )
+                    )
+                }
+                if (list.isNotEmpty()) postDao.insertAll(list)
+            }
+
+            // 2. Sync Notes
+            val notesRes = supabase.getTable("notes", "${coupleQuery}select=*&order=created_at.desc")
+            if (notesRes.isSuccess) {
+                val nArray = notesRes.getOrNull() ?: JSONArray()
+                val nList = mutableListOf<NoteEntity>()
+                for (i in 0 until nArray.length()) {
+                    val obj = nArray.getJSONObject(i)
+                    nList.add(
+                        NoteEntity(
+                            id = obj.optString("id", UUID.randomUUID().toString()),
+                            coupleId = obj.optString("couple_id"),
+                            text = obj.optString("text", ""),
+                            authorId = obj.optString("author_id", user.id),
+                            authorName = obj.optString("author_name", "Pareja"),
+                            isDone = obj.optBoolean("is_done", false),
+                            createdAt = obj.optLong("created_at", System.currentTimeMillis())
+                        )
+                    )
+                }
+                if (nList.isNotEmpty()) noteDao.insertAll(nList)
+            }
+
+            // 3. Sync Daily Answers
+            val answersRes = supabase.getTable("daily_answers", "${coupleQuery}select=*")
+            if (answersRes.isSuccess) {
+                val aArray = answersRes.getOrNull() ?: JSONArray()
+                val aList = mutableListOf<DailyAnswerEntity>()
+                for (i in 0 until aArray.length()) {
+                    val obj = aArray.getJSONObject(i)
+                    aList.add(
+                        DailyAnswerEntity(
+                            questionId = obj.optInt("question_id", 1),
+                            coupleId = obj.optString("couple_id"),
+                            userId = obj.optString("user_id"),
+                            userName = obj.optString("user_name", "Pareja"),
+                            answer = obj.optString("answer", ""),
+                            answeredAt = obj.optLong("answered_at", System.currentTimeMillis())
+                        )
+                    )
+                }
+                if (aList.isNotEmpty()) dailyDao.insertAllAnswers(aList)
+            }
+        } catch (e: Exception) {
+            Log.d("NosotrosRepo", "Sync couple data note: ${e.message}")
         }
     }
 }

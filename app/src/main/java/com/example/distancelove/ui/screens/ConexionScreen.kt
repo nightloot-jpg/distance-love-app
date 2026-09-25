@@ -57,7 +57,7 @@ fun ConexionScreen(
         item {
             ScreenHeader(
                 title = "Conexión",
-                subtitle = "Día 412 juntos"
+                subtitle = "Preguntas & Retos"
             )
         }
 
@@ -119,7 +119,8 @@ fun ConexionScreen(
 
 @Composable
 private fun RealDailyQuestionSection(viewModel: NosotrosViewModel) {
-    val currentUser by viewModel.currentUser.collectAsState()
+    val currentUser by viewModel.currentUserProfile.collectAsState()
+    val partner by viewModel.partnerProfile.collectAsState()
     val dailyAnswers by viewModel.dailyAnswers.collectAsState()
     val dailyChats by viewModel.dailyChats.collectAsState()
 
@@ -230,15 +231,15 @@ private fun RealDailyQuestionSection(viewModel: NosotrosViewModel) {
             Box(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Text(
-                        text = "Respuesta de ${partnerAnswer?.userName ?: "tu pareja"}",
+                        text = "Respuesta de ${partner?.fullName ?: "tu pareja"}",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextMuted
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = partnerAnswer?.answer ?: "Cuando me mandaste el audio cantando a las 3 de la mañana solo para que me durmiera. Me hizo llorar de lo bonito.",
+                        text = partnerAnswer?.answer ?: "Esperando la respuesta de tu pareja…",
                         style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.blur(if (isRevealed) 0.dp else 12.dp)
+                        modifier = Modifier.blur(if (isRevealed && partnerAnswer != null) 0.dp else 12.dp)
                     )
                 }
 
@@ -295,7 +296,7 @@ private fun RealDailyQuestionSection(viewModel: NosotrosViewModel) {
 
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         dailyChats.forEach { chatMsg ->
-                            val isMe = chatMsg.senderId == currentUser?.id || chatMsg.senderName == currentUser?.fullName || chatMsg.senderName == "Tú"
+                            val isMe = chatMsg.senderId == currentUser?.id
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -387,6 +388,7 @@ private fun RealDailyQuestionSection(viewModel: NosotrosViewModel) {
 @Composable
 private fun RealChallengesSection(viewModel: NosotrosViewModel) {
     val challenges by viewModel.challenges.collectAsState()
+    val partner by viewModel.partnerProfile.collectAsState()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         challenges.forEach { challenge ->
@@ -448,7 +450,7 @@ private fun RealChallengesSection(viewModel: NosotrosViewModel) {
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             ChallengeBadge(label = "Tú", isDone = challenge.meDone)
-                            ChallengeBadge(label = "Yuki", isDone = challenge.partnerDone)
+                            ChallengeBadge(label = partner?.fullName ?: "Pareja", isDone = challenge.partnerDone)
                         }
 
                         if (isBothDone) {
@@ -503,6 +505,7 @@ private fun ChallengeBadge(label: String, isDone: Boolean) {
 @Composable
 private fun RealSecretQuestionsSection(viewModel: NosotrosViewModel) {
     val secretQuestions by viewModel.secretQuestions.collectAsState()
+    val currentUser by viewModel.currentUserProfile.collectAsState()
     var draftSecret by remember { mutableStateOf("") }
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -597,6 +600,8 @@ private fun RealSecretQuestionsSection(viewModel: NosotrosViewModel) {
         }
 
         secretQuestions.forEach { sq ->
+            val isMyQuestion = sq.authorId == currentUser?.id
+
             GlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -626,7 +631,7 @@ private fun RealSecretQuestionsSection(viewModel: NosotrosViewModel) {
                     Text(
                         text = when {
                             sq.isAnswered -> "Respondida ✓"
-                            sq.authorName == "Tú" || sq.authorName == "Alberto" -> "Esperando respuesta…"
+                            isMyQuestion -> "Esperando respuesta…"
                             else -> "Toca para responder"
                         },
                         style = MaterialTheme.typography.labelSmall,

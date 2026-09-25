@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -30,6 +31,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.distancelove.data.CountdownTime
+import com.example.distancelove.data.UserProfile
 import com.example.distancelove.data.local.NoteEntity
 import com.example.distancelove.ui.components.GlassCard
 import com.example.distancelove.ui.components.ProfileAuthDialog
@@ -45,8 +47,8 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val currentTime by viewModel.currentTime.collectAsState()
-    val allUsers by viewModel.allUsers.collectAsState()
-    val currentUser by viewModel.currentUser.collectAsState()
+    val currentUser by viewModel.currentUserProfile.collectAsState()
+    val partner by viewModel.partnerProfile.collectAsState()
     val countdown: CountdownTime = remember(currentTime) { viewModel.getReunionCountdown() }
     val isHoldingHeart by viewModel.isHoldingHeart.collectAsState()
     val heartRipples by viewModel.heartRipples.collectAsState()
@@ -94,121 +96,71 @@ fun HomeScreen(
                 )
             }
 
-            // Real Partner Profiles from Database
+            // Real Profiles of User and Partner
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    val displayUsers = if (allUsers.isNotEmpty()) allUsers.take(2) else listOfNotNull(currentUser)
-
-                    displayUsers.forEach { person ->
-                        val cityTime = remember(currentTime, person.timeZone) {
-                            viewModel.formatCityTime(person.timeZone)
+                    currentUser?.let { user ->
+                        val cityTime = remember(currentTime, user.timeZone) {
+                            viewModel.formatCityTime(user.timeZone)
                         }
 
+                        RealProfileGlassCard(
+                            user = user,
+                            cityTime = cityTime,
+                            isMe = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    if (partner != null) {
+                        val p = partner!!
+                        val partnerTime = remember(currentTime, p.timeZone) {
+                            viewModel.formatCityTime(p.timeZone)
+                        }
+
+                        RealProfileGlassCard(
+                            user = p,
+                            cityTime = partnerTime,
+                            isMe = false,
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        // Unlinked Partner invite placeholder card
                         GlassCard(
                             modifier = Modifier
                                 .weight(1f)
-                                .testTag("profile_card_${person.username}"),
+                                .clickable { showProfileDialog = true }
+                                .testTag("link_partner_card"),
                             shape = RoundedCornerShape(28.dp)
                         ) {
                             Column(
-                                modifier = Modifier.padding(16.dp)
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .fillMaxHeight(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    SmartImage(
-                                        model = person.avatarUrl,
-                                        contentDescription = person.fullName,
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .border(1.dp, RosePrimary, CircleShape)
-                                    )
-                                    Column {
-                                        Text(
-                                            text = person.fullName,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(6.dp)
-                                                    .clip(CircleShape)
-                                                    .background(if (person.isCurrentSession) SuccessGreen else TextSubtle)
-                                            )
-                                            Text(
-                                                text = person.status,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontSize = 11.sp
-                                            )
-                                        }
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(14.dp))
-
-                                Text(
-                                    text = cityTime,
-                                    style = MaterialTheme.typography.displayMedium.copy(
-                                        fontSize = 32.sp,
-                                        fontFamily = FontFamily.Serif
-                                    ),
-                                    fontWeight = FontWeight.Bold
+                                Icon(
+                                    imageVector = Icons.Filled.PersonAdd,
+                                    contentDescription = "Vincular pareja",
+                                    tint = RosePrimary,
+                                    modifier = Modifier.size(32.dp)
                                 )
-
+                                Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = person.city,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontSize = 12.sp
+                                    text = "Vincular pareja",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
                                 )
-
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = if (person.weatherIcon == "sun") Icons.Filled.WbSunny else Icons.Filled.WaterDrop,
-                                            contentDescription = "Clima",
-                                            tint = RosePrimary,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                        Text(
-                                            text = person.weatherTemp,
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                    }
-
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = if (person.batteryLevel > 50) Icons.Filled.BatteryFull else Icons.Filled.BatteryAlert,
-                                            contentDescription = "Batería",
-                                            tint = TextMuted,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                        Text(
-                                            text = "${person.batteryLevel}%",
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                    }
-                                }
+                                Text(
+                                    text = "Toca para compartir código",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextMuted,
+                                    fontSize = 11.sp
+                                )
                             }
                         }
                     }
@@ -451,6 +403,115 @@ fun HomeScreen(
                 viewModel = viewModel,
                 onDismiss = { showProfileDialog = false }
             )
+        }
+    }
+}
+
+@Composable
+private fun RealProfileGlassCard(
+    user: UserProfile,
+    cityTime: String,
+    isMe: Boolean,
+    modifier: Modifier = Modifier
+) {
+    GlassCard(
+        modifier = modifier.testTag(if (isMe) "my_profile_card" else "partner_profile_card"),
+        shape = RoundedCornerShape(28.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                SmartImage(
+                    model = user.avatarUrl,
+                    contentDescription = user.fullName,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, RosePrimary, CircleShape)
+                )
+                Column {
+                    Text(
+                        text = user.fullName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(SuccessGreen)
+                        )
+                        Text(
+                            text = user.status,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(
+                text = cityTime,
+                style = MaterialTheme.typography.displayMedium.copy(
+                    fontSize = 32.sp,
+                    fontFamily = FontFamily.Serif
+                ),
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = user.city,
+                style = MaterialTheme.typography.bodyMedium,
+                fontSize = 12.sp
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = if (user.weatherIcon == "sun") Icons.Filled.WbSunny else Icons.Filled.WaterDrop,
+                        contentDescription = "Clima",
+                        tint = RosePrimary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = user.weatherTemp,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = if (user.batteryLevel > 50) Icons.Filled.BatteryFull else Icons.Filled.BatteryAlert,
+                        contentDescription = "Batería",
+                        tint = TextMuted,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "${user.batteryLevel}%",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
         }
     }
 }
