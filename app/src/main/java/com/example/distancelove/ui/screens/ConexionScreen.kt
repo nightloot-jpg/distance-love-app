@@ -13,7 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.distancelove.data.local.ChallengeEntity
 import com.example.distancelove.ui.components.GlassCard
 import com.example.distancelove.ui.components.RoseGradientButton
 import com.example.distancelove.ui.components.ScreenHeader
@@ -372,7 +372,7 @@ private fun RealDailyQuestionSection(viewModel: NosotrosViewModel) {
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                imageVector = Icons.Filled.Send,
                                 contentDescription = "Enviar",
                                 tint = DarkBackground,
                                 modifier = Modifier.size(18.dp)

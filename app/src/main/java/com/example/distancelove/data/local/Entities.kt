@@ -138,6 +138,5 @@ data class DesireVoteEntity(
 data class VaultSettingsEntity(
     @PrimaryKey val id: Int = 1,
     val pinCode: String = "1402",
-    val biometricsEnabled: Boolean = true,
-    val reunionDateMillis: Long = 1792231200000L
+    val biometricsEnabled: Boolean = true
 )

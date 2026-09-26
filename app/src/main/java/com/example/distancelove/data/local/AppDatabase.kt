@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
         DesireVoteEntity::class,
         VaultSettingsEntity::class
     ],
-    version = 3,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

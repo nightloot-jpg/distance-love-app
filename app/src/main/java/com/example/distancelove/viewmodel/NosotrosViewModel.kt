@@ -17,7 +17,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.Duration
-import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -54,9 +53,7 @@ class NosotrosViewModel(application: Application) : AndroidViewModel(application
     // --- Time & Reunion Countdown ---
     private val _currentTime = MutableStateFlow(ZonedDateTime.now())
     val currentTime: StateFlow<ZonedDateTime> = _currentTime.asStateFlow()
-
-    val vaultSettings: StateFlow<VaultSettingsEntity?> = repository.vaultSettings
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    private val reunionTarget = ZonedDateTime.of(2026, 10, 18, 10, 0, 0, 0, ZoneId.systemDefault())
 
     // --- Heartbeat state ---
     private val _isHoldingHeart = MutableStateFlow(false)
@@ -583,20 +580,6 @@ class NosotrosViewModel(application: Application) : AndroidViewModel(application
         _vaultPinError.value = false
     }
 
-    fun changeVaultPin(newPin: String) {
-        if (newPin.length == 4) {
-            viewModelScope.launch {
-                repository.updateVaultPin(newPin)
-            }
-        }
-    }
-
-    fun setReunionDate(dateMillis: Long) {
-        viewModelScope.launch {
-            repository.updateReunionDate(dateMillis)
-        }
-    }
-
     // --- Heartbeat actions ---
 
     fun startHeartbeat() {
@@ -646,8 +629,6 @@ class NosotrosViewModel(application: Application) : AndroidViewModel(application
 
     fun getReunionCountdown(): CountdownTime {
         val now = _currentTime.value
-        val targetMillis = vaultSettings.value?.reunionDateMillis ?: 1792231200000L
-        val reunionTarget = ZonedDateTime.ofInstant(Instant.ofEpochMilli(targetMillis), ZoneId.systemDefault())
         val nowLocal = now.toLocalDateTime()
         val targetLocal = reunionTarget.toLocalDateTime()
         val duration = if (targetLocal.isAfter(nowLocal)) Duration.between(nowLocal, targetLocal) else Duration.ZERO

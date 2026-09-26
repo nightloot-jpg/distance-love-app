@@ -245,7 +245,7 @@ class NosotrosRepository(
         }
 
         val coupleObj = array.getJSONObject(0)
-        val coupleId = coupleObj.optString("id")
+        val coupleId = coupleObj.getString("id")
 
         // Add member to couple_members
         val memberJson = JSONObject().apply {
@@ -558,17 +558,6 @@ class NosotrosRepository(
         id
     }
 
-    // --- Vault Settings & Reunion Date ---
-    val vaultSettings: Flow<VaultSettingsEntity?> = vaultDao.getVaultSettings()
-
-    suspend fun updateVaultPin(newPin: String) = withContext(Dispatchers.IO) {
-        vaultDao.updatePinCode(newPin.trim())
-    }
-
-    suspend fun updateReunionDate(newDateMillis: Long) = withContext(Dispatchers.IO) {
-        vaultDao.updateReunionDate(newDateMillis)
-    }
-
     // --- Desire Match ---
     val allDesireVotes: Flow<List<DesireVoteEntity>> = desireDao.getAllDesireVotes()
     val matchedDesires: Flow<List<DesireVoteEntity>> = desireDao.getMatches()
@@ -645,8 +634,8 @@ class NosotrosRepository(
                 val array = membersRes.getOrNull() ?: JSONArray()
                 for (i in 0 until array.length()) {
                     val m = array.getJSONObject(i)
-                    val memberUserId = m.optString("user_id")
-                    if (memberUserId.isNotBlank() && memberUserId != user.id) {
+                    val memberUserId = m.getString("user_id")
+                    if (memberUserId != user.id) {
                         val p = loadUserProfileFromSupabase(memberUserId, "")
                         if (p != null) {
                             _partnerProfile.value = p
