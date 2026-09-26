@@ -5,9 +5,12 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.net.Uri
 import android.view.ViewGroup
 import android.webkit.CookieManager
+import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -15,6 +18,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.animation.expandVertically
@@ -62,6 +66,13 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import com.example.distancelove.data.ChatMessage
 import com.example.distancelove.data.CinemaFloater
@@ -2593,6 +2604,16 @@ private fun RaveWebPlayer(
     onWebViewCreated: (WebView) -> Unit,
     onLoadingChange: (Boolean) -> Unit = {}
 ) {
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                CookieManager.getInstance().flush()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     AndroidView(
         factory = { ctx ->
             WebView(ctx).apply {
@@ -2600,35 +2621,78 @@ private fun RaveWebPlayer(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
+
+                val cookieManager = CookieManager.getInstance()
+                cookieManager.setAcceptCookie(true)
+                cookieManager.setAcceptThirdPartyCookies(this, true)
+
                 settings.apply {
                     javaScriptEnabled = true
                     domStorageEnabled = true
                     databaseEnabled = true
+                    javaScriptCanOpenWindowsAutomatically = true
                     mediaPlaybackRequiresUserGesture = false
                     useWideViewPort = true
                     loadWithOverviewMode = true
                     builtInZoomControls = true
                     displayZoomControls = false
                     setSupportZoom(true)
-                    userAgentString = "Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+                    mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                     cacheMode = WebSettings.LOAD_DEFAULT
+                    userAgentString = "Mozilla/5.0 (Linux; Android 13; SM-T870) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
                 }
 
-                val webView = this
-                CookieManager.getInstance().apply {
-                    setAcceptCookie(true)
-                    setAcceptThirdPartyCookies(webView, true)
+                webChromeClient = object : WebChromeClient() {
+                    override fun onPermissionRequest(request: PermissionRequest?) {
+                        request?.grant(request.resources)
+                    }
                 }
 
-                webChromeClient = WebChromeClient()
                 webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                        val reqUrl = request?.url?.toString() ?: return false
+                        if (reqUrl.startsWith("intent://") || reqUrl.startsWith("market://") ||
+                            reqUrl.startsWith("netflix://") || reqUrl.startsWith("disneyplus://") ||
+                            reqUrl.startsWith("primevideo://")
+                        ) {
+                            view?.loadUrl("https://www.netflix.com/browse")
+                            return true
+                        }
+                        if (reqUrl.contains("netflix.com") && (reqUrl.contains("/mobile") || reqUrl.contains("app_redirect") || reqUrl.contains("/download"))) {
+                            view?.loadUrl("https://www.netflix.com/browse")
+                            return true
+                        }
+                        return false
+                    }
+
                     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                         super.onPageStarted(view, url, favicon)
+                        cookieManager.flush()
                         onLoadingChange(true)
                     }
 
                     override fun onPageFinished(view: WebView?, url: String?) {
                         super.onPageFinished(view, url)
+                        cookieManager.flush()
+                        val hideMobileAppWallsJs = """
+                            (function() {
+                                var currentUrl = window.location.href;
+                                if (currentUrl.indexOf('/mobile') !== -1 || (document.body && document.body.innerText && document.body.innerText.indexOf('Netflix se disfruta mejor') !== -1)) {
+                                    window.location.href = 'https://www.netflix.com/browse';
+                                }
+                                if (document.body && document.body.innerText && document.body.innerText.indexOf('Código de error E100') !== -1) {
+                                    var homeBtn = document.querySelector('a[href*="/browse"]');
+                                    if (homeBtn) { homeBtn.click(); } else { window.location.href = 'https://www.netflix.com/browse'; }
+                                }
+                                var mobileEls = document.querySelectorAll('.mobile-app-banner, [data-uia="mobile-app-redirect"], .app-download-wall');
+                                mobileEls.forEach(function(el) { el.style.display = 'none'; });
+                                var intentLinks = document.querySelectorAll('a[href*="intent://"], a[href*="netflix://"]');
+                                intentLinks.forEach(function(a) {
+                                    a.setAttribute('href', 'https://www.netflix.com/browse');
+                                });
+                            })();
+                        """.trimIndent()
+                        view?.evaluateJavascript(hideMobileAppWallsJs, null)
                         onLoadingChange(false)
                     }
                 }
@@ -2638,7 +2702,7 @@ private fun RaveWebPlayer(
             }
         },
         update = { webView ->
-            if (webView.url != url) {
+            if (webView.url != url && url.isNotBlank()) {
                 webView.loadUrl(url)
             }
         },
@@ -2684,9 +2748,9 @@ private fun saveBitmapToInternalCache(context: Context, bitmap: Bitmap): String 
 }
 
 /**
- * Clean Pure Video Player that renders ONLY the video stream without web chrome/ads
+ * Native ExoPlayer Video Player that renders video streams with hardware acceleration, error listeners and zero crashes
  */
-@SuppressLint("SetJavaScriptEnabled")
+@OptIn(UnstableApi::class)
 @Composable
 fun CinemaPureVideoPlayer(
     videoUrl: String,
@@ -2694,93 +2758,66 @@ fun CinemaPureVideoPlayer(
     onTogglePlayPause: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var webViewInstance by remember { mutableStateOf<WebView?>(null) }
+    val context = LocalContext.current
 
-    LaunchedEffect(isPlaying, webViewInstance) {
-        webViewInstance?.let { wv ->
-            val js = if (isPlaying) {
-                "var v = document.getElementById('cinema_video'); if (v) { v.play(); }"
-            } else {
-                "var v = document.getElementById('cinema_video'); if (v) { v.pause(); }"
-            }
-            wv.evaluateJavascript(js, null)
+    val exoPlayer = remember(context) {
+        ExoPlayer.Builder(context.applicationContext).build().apply {
+            repeatMode = Player.REPEAT_MODE_ONE
+            addListener(object : Player.Listener {
+                override fun onPlayerError(error: PlaybackException) {
+                    error.printStackTrace()
+                }
+            })
         }
     }
 
     LaunchedEffect(videoUrl) {
-        webViewInstance?.let { wv ->
-            val html = """
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                    <style>
-                        * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
-                        body, html { width: 100%; height: 100%; overflow: hidden; background: #000000; display: flex; align-items: center; justify-content: center; }
-                        video { width: 100%; height: 100%; object-fit: contain; background: #000; outline: none; }
-                    </style>
-                </head>
-                <body>
-                    <video id="cinema_video" src="$videoUrl" autoplay ${if (isPlaying) "autoplay" else ""} loop playsinline webkit-playsinline></video>
-                    <script>
-                        var v = document.getElementById('cinema_video');
-                        if (v) {
-                            ${if (isPlaying) "v.play();" else "v.pause();"}
-                        }
-                    </script>
-                </body>
-                </html>
-            """.trimIndent()
-            wv.loadDataWithBaseURL("https://cinema.local", html, "text/html", "UTF-8", null)
+        if (videoUrl.isNotBlank()) {
+            try {
+                val mediaItem = MediaItem.fromUri(Uri.parse(videoUrl))
+                exoPlayer.setMediaItem(mediaItem)
+                exoPlayer.prepare()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
-    Box(modifier = modifier.fillMaxSize().background(Color.Black).clickable { onTogglePlayPause() }) {
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            exoPlayer.play()
+        } else {
+            exoPlayer.pause()
+        }
+    }
+
+    DisposableEffect(exoPlayer) {
+        onDispose {
+            try {
+                exoPlayer.stop()
+                exoPlayer.release()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .clickable { onTogglePlayPause() }
+    ) {
         AndroidView(
             factory = { ctx ->
-                WebView(ctx).apply {
-                    layoutParams = ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                    settings.apply {
-                        javaScriptEnabled = true
-                        domStorageEnabled = true
-                        mediaPlaybackRequiresUserGesture = false
-                        useWideViewPort = true
-                        loadWithOverviewMode = true
-                        cacheMode = WebSettings.LOAD_DEFAULT
-                        mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                    }
-                    setBackgroundColor(android.graphics.Color.BLACK)
-                    webChromeClient = WebChromeClient()
-                    webViewClient = WebViewClient()
-
-                    val html = """
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                            <style>
-                                * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
-                                body, html { width: 100%; height: 100%; overflow: hidden; background: #000000; display: flex; align-items: center; justify-content: center; }
-                                video { width: 100%; height: 100%; object-fit: contain; background: #000; outline: none; }
-                            </style>
-                        </head>
-                        <body>
-                            <video id="cinema_video" src="$videoUrl" autoplay ${if (isPlaying) "autoplay" else ""} loop playsinline webkit-playsinline></video>
-                            <script>
-                                var v = document.getElementById('cinema_video');
-                                if (v) {
-                                    ${if (isPlaying) "v.play();" else "v.pause();"}
-                                }
-                            </script>
-                        </body>
-                        </html>
-                    """.trimIndent()
-                    loadDataWithBaseURL("https://cinema.local", html, "text/html", "UTF-8", null)
-                    webViewInstance = this
+                PlayerView(ctx).apply {
+                    player = exoPlayer
+                    useController = false
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                 }
+            },
+            update = { view ->
+                view.player = exoPlayer
             },
             modifier = Modifier.fillMaxSize()
         )
