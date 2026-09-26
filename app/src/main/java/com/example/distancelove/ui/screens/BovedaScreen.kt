@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -190,7 +191,7 @@ private fun VaultPinUnlockScreen(
                                 }
                                 "DEL" -> {
                                     Icon(
-                                        imageVector = Icons.Filled.Backspace,
+                                        imageVector = Icons.AutoMirrored.Filled.Backspace,
                                         contentDescription = "Borrar",
                                         tint = TextMuted,
                                         modifier = Modifier.size(22.dp)
@@ -231,6 +232,9 @@ private fun UnlockedVaultContent(
 ) {
     var currentTab by remember { mutableStateOf(VaultTab.MATCH) }
     val matchFlash by viewModel.matchFlash.collectAsState()
+    var showChangePinDialog by remember { mutableStateOf(false) }
+    var newPinInput by remember { mutableStateOf("") }
+    var changePinError by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -245,31 +249,61 @@ private fun UnlockedVaultContent(
                     title = "Bóveda",
                     subtitle = "Solo vosotros dos",
                     trailingContent = {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .background(DarkSurfaceElevated)
-                                .border(1.dp, DarkCardBorder, RoundedCornerShape(50))
-                                .clickable { viewModel.lockVault() }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                                .testTag("lock_vault_button"),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .background(DarkSurfaceElevated)
+                                    .border(1.dp, DarkCardBorder, RoundedCornerShape(50))
+                                    .clickable { showChangePinDialog = true }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                                    .testTag("change_pin_button"),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Lock,
-                                    contentDescription = "Bloquear",
-                                    tint = RosePrimary,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Text(
-                                    text = "Bloquear",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = TextPrimary
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Key,
+                                        contentDescription = "PIN",
+                                        tint = RosePrimary,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = "PIN",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = TextPrimary
+                                    )
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .background(DarkSurfaceElevated)
+                                    .border(1.dp, DarkCardBorder, RoundedCornerShape(50))
+                                    .clickable { viewModel.lockVault() }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                                    .testTag("lock_vault_button"),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Lock,
+                                        contentDescription = "Bloquear",
+                                        tint = RosePrimary,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = "Bloquear",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = TextPrimary
+                                    )
+                                }
                             }
                         }
                     }
@@ -365,6 +399,80 @@ private fun UnlockedVaultContent(
                     }
                 }
             }
+        }
+
+        if (showChangePinDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showChangePinDialog = false
+                    newPinInput = ""
+                    changePinError = false
+                },
+                title = {
+                    Text(
+                        text = "Nuevo PIN de la Bóveda",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = TextPrimary
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Introduce un nuevo PIN de 4 dígitos:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextMuted
+                        )
+                        OutlinedTextField(
+                            value = newPinInput,
+                            onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) newPinInput = it },
+                            singleLine = true,
+                            isError = changePinError,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = RosePrimary,
+                                unfocusedBorderColor = DarkCardBorder,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary
+                            )
+                        )
+                        if (changePinError) {
+                            Text(
+                                text = "El PIN debe tener exactamente 4 dígitos.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = DestructiveRed
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            if (newPinInput.length == 4) {
+                                viewModel.changeVaultPin(newPinInput)
+                                showChangePinDialog = false
+                                newPinInput = ""
+                                changePinError = false
+                            } else {
+                                changePinError = true
+                            }
+                        }
+                    ) {
+                        Text("Guardar", color = RosePrimary, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showChangePinDialog = false
+                            newPinInput = ""
+                            changePinError = false
+                        }
+                    ) {
+                        Text("Cancelar", color = TextMuted)
+                    }
+                },
+                containerColor = DarkSurfaceElevated
+            )
         }
     }
 }

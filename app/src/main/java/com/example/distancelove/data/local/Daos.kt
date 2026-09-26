@@ -165,4 +165,10 @@ interface VaultSettingsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveVaultSettings(settings: VaultSettingsEntity)
+
+    @Query("UPDATE vault_settings SET pinCode = :newPin WHERE id = 1")
+    suspend fun updatePinCode(newPin: String)
+
+    @Query("UPDATE vault_settings SET reunionDateMillis = :newDateMillis WHERE id = 1")
+    suspend fun updateReunionDate(newDateMillis: Long)
 }

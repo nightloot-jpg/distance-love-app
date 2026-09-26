@@ -2,7 +2,6 @@ package com.example.distancelove
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -19,6 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.example.distancelove.data.AuthState
 import com.example.distancelove.ui.components.BottomNavBar
 import com.example.distancelove.ui.components.NavDestination
@@ -70,11 +73,10 @@ class MainActivity : ComponentActivity() {
                     }
 
                     is AuthState.Authenticated -> {
-                        var currentDestination by remember { mutableStateOf(NavDestination.HOME) }
-
-                        BackHandler(enabled = currentDestination != NavDestination.HOME) {
-                            currentDestination = NavDestination.HOME
-                        }
+                        val navController = rememberNavController()
+                        val navBackStackEntry by navController.currentBackStackEntryAsState()
+                        val currentRoute = navBackStackEntry?.destination?.route ?: NavDestination.HOME.route
+                        val currentDestination = NavDestination.entries.find { it.route == currentRoute } ?: NavDestination.HOME
 
                         Scaffold(
                             modifier = Modifier
@@ -85,7 +87,17 @@ class MainActivity : ComponentActivity() {
                             bottomBar = {
                                 BottomNavBar(
                                     currentDestination = currentDestination,
-                                    onNavigate = { dest -> currentDestination = dest }
+                                    onNavigate = { dest ->
+                                        if (dest.route != currentRoute) {
+                                            navController.navigate(dest.route) {
+                                                popUpTo(NavDestination.HOME.route) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        }
+                                    }
                                 )
                             }
                         ) { innerPadding ->
@@ -96,19 +108,33 @@ class MainActivity : ComponentActivity() {
                                         Brush.radialGradient(
                                             colors = listOf(
                                                 Color(0x38551E2E),
-                                                Color(0x181014)
+                                                Color(0xFF181014)
                                             ),
                                             radius = 1200f
                                         )
                                     )
                                     .padding(innerPadding)
                             ) {
-                                when (currentDestination) {
-                                    NavDestination.HOME -> HomeScreen(viewModel = viewModel)
-                                    NavDestination.CONEXION -> ConexionScreen(viewModel = viewModel)
-                                    NavDestination.CINE -> CineScreen(viewModel = viewModel)
-                                    NavDestination.FEED -> FeedScreen(viewModel = viewModel)
-                                    NavDestination.BOVEDA -> BovedaScreen(viewModel = viewModel)
+                                NavHost(
+                                    navController = navController,
+                                    startDestination = NavDestination.HOME.route,
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    composable(NavDestination.HOME.route) {
+                                        HomeScreen(viewModel = viewModel)
+                                    }
+                                    composable(NavDestination.CONEXION.route) {
+                                        ConexionScreen(viewModel = viewModel)
+                                    }
+                                    composable(NavDestination.CINE.route) {
+                                        CineScreen(viewModel = viewModel)
+                                    }
+                                    composable(NavDestination.FEED.route) {
+                                        FeedScreen(viewModel = viewModel)
+                                    }
+                                    composable(NavDestination.BOVEDA.route) {
+                                        BovedaScreen(viewModel = viewModel)
+                                    }
                                 }
                             }
                         }

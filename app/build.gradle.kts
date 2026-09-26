@@ -11,6 +11,10 @@ android {
     namespace = "com.example.distancelove"
     compileSdk = 35
 
+    base {
+        archivesName.set("nosotros")
+    }
+
     defaultConfig {
         applicationId = "com.aistudio.distancelove.nosotros"
         minSdk = 26
@@ -74,6 +78,8 @@ dependencies {
 
     implementation(libs.androidx.security.crypto)
     implementation(libs.okhttp)
+
+    testImplementation("junit:junit:4.13.2")
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

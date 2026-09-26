@@ -39,8 +39,13 @@ import com.example.distancelove.ui.components.ScreenHeader
 import com.example.distancelove.ui.components.SmartImage
 import com.example.distancelove.ui.theme.*
 import com.example.distancelove.viewmodel.NosotrosViewModel
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: NosotrosViewModel,
@@ -49,13 +54,22 @@ fun HomeScreen(
     val currentTime by viewModel.currentTime.collectAsState()
     val currentUser by viewModel.currentUserProfile.collectAsState()
     val partner by viewModel.partnerProfile.collectAsState()
-    val countdown: CountdownTime = remember(currentTime) { viewModel.getReunionCountdown() }
+    val vaultSettings by viewModel.vaultSettings.collectAsState()
+    val countdown: CountdownTime = remember(currentTime, vaultSettings) { viewModel.getReunionCountdown() }
     val isHoldingHeart by viewModel.isHoldingHeart.collectAsState()
     val heartRipples by viewModel.heartRipples.collectAsState()
     val notes by viewModel.notes.collectAsState()
 
     var newNoteText by remember { mutableStateOf("") }
     var showProfileDialog by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val formattedTargetDate = remember(vaultSettings) {
+        vaultSettings?.reunionDateMillis?.let { millis ->
+            val zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault())
+            zdt.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale("es", "ES"))).uppercase()
+        } ?: "18 OCT 2026"
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -181,12 +195,27 @@ fun HomeScreen(
                             .padding(20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "PRÓXIMO REENCUENTRO · 18 OCT",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextMuted,
-                            letterSpacing = 2.sp
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable { showDatePicker = true }
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "PRÓXIMO REENCUENTRO · $formattedTargetDate",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = RosePrimary,
+                                letterSpacing = 2.sp
+                            )
+                            Icon(
+                                imageVector = Icons.Filled.EditCalendar,
+                                contentDescription = "Cambiar fecha de reencuentro",
+                                tint = RosePrimary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(4.dp))
 
@@ -403,6 +432,34 @@ fun HomeScreen(
                 viewModel = viewModel,
                 onDismiss = { showProfileDialog = false }
             )
+        }
+
+        if (showDatePicker) {
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = vaultSettings?.reunionDateMillis ?: System.currentTimeMillis()
+            )
+            DatePickerDialog(
+                onDismissRequest = { showDatePicker = false },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            datePickerState.selectedDateMillis?.let { selectedMillis ->
+                                viewModel.setReunionDate(selectedMillis)
+                            }
+                            showDatePicker = false
+                        }
+                    ) {
+                        Text("Guardar", color = RosePrimary, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDatePicker = false }) {
+                        Text("Cancelar", color = TextMuted)
+                    }
+                }
+            ) {
+                DatePicker(state = datePickerState)
+            }
         }
     }
 }
